@@ -1,0 +1,6 @@
+{
+  "name": "LRT Train Driver SOP Tablet App",
+  "description": "A high-performance interactive SOP wizard and operational dashboard for Light Rail Transit (LRT) train drivers, converting complex operational rulebooks into structured step-by-step decision trees.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
