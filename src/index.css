@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 @theme {
-  --font-sans: "Inter", "Cairo", system-ui, sans-serif;
+  --font-sans: "Cairo", "Inter", system-ui, sans-serif;
   --font-mono: "JetBrains Mono", monospace;
   --font-arabic: "Cairo", "Inter", sans-serif;
 }

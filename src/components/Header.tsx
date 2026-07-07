@@ -80,26 +80,26 @@ export default function Header({
   }, []);
 
   return (
-    <header className="relative border-b border-slate-100 bg-white px-6 py-2.5 shrink-0 flex items-center justify-between z-50">
+    <header className="relative border-b border-slate-100 bg-white px-4 md:px-6 py-2 md:py-2.5 shrink-0 flex items-center justify-between z-50">
       
       {/* LEFT SIDE: Status Bar Simulation (Time, Date, Wifi, Battery) */}
-      <div className="flex items-center space-x-4">
+      <div className="flex items-center space-x-1.5 md:space-x-4">
         {/* Hardware & Tablet Status Icons */}
-        <div className="flex items-center space-x-2 text-slate-700">
+        <div className="hidden sm:flex items-center space-x-2 text-slate-700">
           <Wifi className="w-4 h-4 text-slate-800" />
           <Battery className="w-5 h-5 text-slate-800" />
           <span className="text-xs font-mono font-bold text-slate-800">64%</span>
         </div>
 
         {/* Separator */}
-        <div className="h-4 w-[1px] bg-slate-200"></div>
+        <div className="hidden sm:block h-4 w-[1px] bg-slate-200"></div>
 
         {/* Dynamic localized Time and Date */}
-        <div className="flex items-center space-x-2.5">
-          <span className="text-sm font-black text-slate-900 tracking-tight font-mono">
+        <div className="flex items-center space-x-1.5 md:space-x-2.5">
+          <span className="text-xs md:text-sm font-black text-slate-900 tracking-tight font-mono">
             {currentTime}
           </span>
-          <span className="text-xs font-arabic font-bold text-slate-500">
+          <span className="text-[10px] md:text-xs font-arabic font-bold text-slate-500 max-w-[80px] sm:max-w-none truncate">
             {arabicDate}
           </span>
         </div>
@@ -107,7 +107,7 @@ export default function Header({
         {/* Settings Gear Popover Trigger */}
         <button
           onClick={() => setIsSettingsOpen(!isSettingsOpen)}
-          className={`p-1.5 rounded-lg transition-all focus:outline-none relative ${
+          className={`p-1 md:p-1.5 rounded-lg transition-all focus:outline-none relative ${
             isSettingsOpen 
               ? 'bg-slate-100 text-slate-900' 
               : 'text-slate-400 hover:text-slate-700 hover:bg-slate-50'
@@ -115,21 +115,21 @@ export default function Header({
           title="إعدادات ومزامنة التابلت"
           id="btn-header-settings"
         >
-          <Settings className="w-4 h-4" />
+          <Settings className="w-3.5 h-3.5 md:w-4 md:h-4" />
           {spreadsheetUrl && (
-            <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-emerald-500 rounded-full border border-white animate-pulse"></span>
+            <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 md:w-2 md:h-2 bg-emerald-500 rounded-full border border-white animate-pulse"></span>
           )}
         </button>
       </div>
 
       {/* RIGHT SIDE: LRT Official Branding */}
-      <div className="flex items-center space-x-3.5">
+      <div className="flex items-center space-x-2 md:space-x-3.5">
         {/* Label and Section Titles */}
         <div className="text-right flex flex-col justify-center">
-          <span className="text-[10px] font-mono font-black text-emerald-600 uppercase tracking-widest leading-none">
-            DRI - SOPs
+          <span className="text-[9px] md:text-[11px] font-arabic font-extrabold text-emerald-600 uppercase tracking-widest leading-none">
+            دليل التشغيل الرقمي
           </span>
-          <h1 className="text-sm font-arabic font-extrabold text-slate-900 mt-1 leading-none">
+          <h1 className="text-xs md:text-sm font-arabic font-extrabold text-slate-900 mt-0.5 md:mt-1 leading-none">
             القطار الكهربائي الخفيف
           </h1>
         </div>
@@ -137,11 +137,11 @@ export default function Header({
         {/* Green Subway Button (Goes Home) */}
         <button
           onClick={onGoHome}
-          className="w-10 h-10 bg-[#059669] rounded-xl flex items-center justify-center text-white shadow-sm hover:bg-[#047857] transition-all cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#059669]/40"
+          className="w-8 h-8 md:w-10 md:h-10 bg-[#059669] rounded-lg md:rounded-xl flex items-center justify-center text-white shadow-sm hover:bg-[#047857] transition-all cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#059669]/40"
           title="الرئيسية"
           id="btn-header-subway"
         >
-          <Train className="w-5 h-5" />
+          <Train className="w-4 h-4 md:w-5 md:h-5" />
         </button>
       </div>
 
@@ -179,8 +179,8 @@ export default function Header({
                     type="text" 
                     value={driverId}
                     onChange={(e) => setDriverId(e.target.value.toUpperCase())}
-                    className="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs font-bold text-slate-800 focus:outline-none focus:border-[#059669]"
-                    placeholder="e.g. DRV-4089"
+                    className="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs font-bold text-slate-800 focus:outline-none focus:border-[#059669] text-right font-arabic"
+                    placeholder="مثال: DRV-4089"
                   />
                 </div>
 
@@ -193,8 +193,8 @@ export default function Header({
                     type="text" 
                     value={trainId}
                     onChange={(e) => setTrainId(e.target.value.toUpperCase())}
-                    className="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs font-bold text-slate-800 focus:outline-none focus:border-[#059669]"
-                    placeholder="e.g. TR-012"
+                    className="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs font-bold text-slate-800 focus:outline-none focus:border-[#059669] text-right font-arabic"
+                    placeholder="مثال: TR-012"
                   />
                 </div>
               </div>
@@ -283,7 +283,7 @@ export default function Header({
                       <LogOut className="w-3.5 h-3.5" />
                     </button>
                     <div className="text-right">
-                      <span className="text-[10px] text-slate-400 block font-mono font-bold leading-none">CONNECTED GOOGLE</span>
+                      <span className="text-[10px] text-slate-400 block font-arabic font-extrabold leading-none">حساب Google النشط:</span>
                       <span className="font-mono font-bold text-slate-700 text-[11px]">{googleUser.email}</span>
                     </div>
                   </div>
@@ -295,7 +295,7 @@ export default function Header({
                         <span className="text-[10px] text-emerald-600 block font-extrabold leading-none mb-1">الملف المربوط والنشط:</span>
                         <span className="text-xs font-black text-slate-800 flex items-center justify-end gap-1.5">
                           <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600 animate-pulse" />
-                          <span className="truncate">{spreadsheetName || 'SOP Train Driver Logs'}</span>
+                          <span className="truncate">{spreadsheetName || 'سجل تشغيل قطارات LRT'}</span>
                         </span>
                       </div>
 

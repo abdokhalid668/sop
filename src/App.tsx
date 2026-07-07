@@ -20,12 +20,23 @@ import {
   fetchNotesFromSpreadsheet, saveNotesToSpreadsheet, updateLastRegistrationNoteInSpreadsheet
 } from './lib/googleSheets';
 
+const SUB_CODE_NODE_MAPPING: Record<string, { baseCode: string; nodeId: string }> = {
+  "DRI-DEG-105-1": { baseCode: "DRI-DEG-105", nodeId: "action_front_shunting" },
+  "DRI-DEG-105-2": { baseCode: "DRI-DEG-105", nodeId: "action_rear_shunting" },
+  "DRI-DEG-105-3": { baseCode: "DRI-DEG-105", nodeId: "action_tst_single_track" },
+  "DRI-DEG-109-1": { baseCode: "DRI-DEG-109", nodeId: "action_overrun_proc" },
+  "DRI-DEG-109-2": { baseCode: "DRI-DEG-109", nodeId: "action_underrun_proc" },
+  "DRI-DEG-113-1": { baseCode: "DRI-DEG-113", nodeId: "action_stop_open_track" },
+  "DRI-DEG-113-2": { baseCode: "DRI-DEG-113", nodeId: "action_keep_stopped_station" },
+};
+
 export default function App() {
   // Navigation & Tab States
   const [screen, setScreen] = useState<'dashboard' | 'category' | 'wizard'>('dashboard');
   const [activeTab, setActiveTab] = useState<'home' | 'procedures' | 'search' | 'favorites' | 'driver_code'>('home');
   const [selectedCategory, setSelectedCategory] = useState<'normal' | 'degraded' | 'emergency' | 'troubleshooting' | null>(null);
   const [selectedSop, setSelectedSop] = useState<SOP | null>(null);
+  const [wizardInitialNodeId, setWizardInitialNodeId] = useState<string>('start');
 
   // Driver badge & vehicle registration
   const [driverId, setDriverId] = useState<string>(() => {
@@ -376,8 +387,9 @@ export default function App() {
   };
 
   // Handle SOP launch (SOP ➔ Fullscreen Wizard)
-  const handleSelectSop = (sop: SOP) => {
+  const handleSelectSop = (sop: SOP, customInitialNode: string = 'start') => {
     setSelectedSop(sop);
+    setWizardInitialNodeId(customInitialNode);
     setScreen('wizard');
     
     const now = new Date();
@@ -396,24 +408,27 @@ export default function App() {
         openTimestamp: openingTime,
         status: 'opened',
         sopCode: sop.sop_code,
-        sopTitle: sop.title_en,
+        sopTitle: sop.title_ar,
         location: trainLocation,
-        outcome: 'Procedure opened on tablet. Awaiting driver decision completion.'
+        outcome: 'تم فتح الدليل على التابلت. في انتظار اتخاذ القرار واتباع الخطوات من قبل قائد القطار.'
       };
       return [newLog, ...prev];
     });
 
     // Initialize or restore active session
     const restoredSop = activeSession && activeSession.sopCode === sop.sop_code;
-    const initialNode = restoredSop ? activeSession.currentNodeId : 'start';
-    const initialHistory = restoredSop ? activeSession.history : [];
+    const initialNode = customInitialNode !== 'start' ? customInitialNode : (restoredSop ? activeSession.currentNodeId : 'start');
+    const initialHistory = restoredSop && customInitialNode === 'start' ? activeSession.history : [];
 
-    // Save active state to localStorage for persistence
-    localStorage.setItem('lrt_active_sop_session', JSON.stringify({
+    const sessionObj = {
       sopCode: sop.sop_code,
       currentNodeId: initialNode,
       history: initialHistory
-    }));
+    };
+
+    // Save active state to localStorage for persistence
+    localStorage.setItem('lrt_active_sop_session', JSON.stringify(sessionObj));
+    setActiveSession(sessionObj);
   };
 
   // Resume the active session found in storage
@@ -422,6 +437,7 @@ export default function App() {
     const sop = SOPS_DATA.find(s => s.sop_code === activeSession.sopCode);
     if (sop) {
       setSelectedSop(sop);
+      setWizardInitialNodeId(activeSession.currentNodeId || 'start');
       setScreen('wizard');
     }
   };
@@ -587,7 +603,10 @@ export default function App() {
               transition={{ duration: 0.15 }}
               className="flex-1 flex flex-col overflow-hidden"
             >
-              <Dashboard onSelectCategory={handleSelectCategory} />
+              <Dashboard 
+                onSelectCategory={handleSelectCategory} 
+                importantInstructions={importantInstructions}
+              />
             </motion.div>
           )}
 
@@ -697,7 +716,9 @@ export default function App() {
               className="flex-1 flex flex-col overflow-hidden z-20"
             >
               <SopWizard
+                key={`${selectedSop.sop_code}-${wizardInitialNodeId}`}
                 sop={selectedSop}
+                initialNodeId={wizardInitialNodeId}
                 onGoHome={() => {
                   setActiveTab('home');
                   setScreen('dashboard');
@@ -707,6 +728,36 @@ export default function App() {
                   setScreen('category');
                 }}
                 onLogCompleted={handleLogCompleted}
+                onSessionUpdate={(session) => {
+                  setActiveSession(session);
+                }}
+                onNavigateSop={(sopCode) => {
+                  const cleanedCode = sopCode.trim().toUpperCase();
+                  
+                  // 1. Check if there is a sub-code mapping (e.g., DRI-DEG-105-3)
+                  const subCodeMap = SUB_CODE_NODE_MAPPING[cleanedCode];
+                  if (subCodeMap) {
+                    const targetSop = SOPS_DATA.find(s => s.sop_code.toUpperCase() === subCodeMap.baseCode.toUpperCase());
+                    if (targetSop) {
+                      setWizardInitialNodeId(subCodeMap.nodeId);
+                      handleSelectSop(targetSop, subCodeMap.nodeId);
+                    }
+                  } else {
+                    // Standard base SOP
+                    let targetSop = SOPS_DATA.find(s => s.sop_code.toUpperCase() === cleanedCode);
+                    if (!targetSop) {
+                      const parts = cleanedCode.split('-');
+                      if (parts.length > 3) {
+                        const baseCode = parts.slice(0, 3).join('-');
+                        targetSop = SOPS_DATA.find(s => s.sop_code.toUpperCase() === baseCode);
+                      }
+                    }
+                    if (targetSop) {
+                      setWizardInitialNodeId('start');
+                      handleSelectSop(targetSop, 'start');
+                    }
+                  }
+                }}
               />
             </motion.div>
           )}
@@ -715,24 +766,24 @@ export default function App() {
 
         {/* FLOATING ARABIC BOTTOM NAVIGATION BAR exactly matching the screenshot */}
         {screen !== 'wizard' && (
-          <div className="absolute bottom-5 left-1/2 -translate-x-1/2 bg-white border border-slate-200 shadow-xl rounded-full px-5 py-2.5 flex items-center justify-around z-40 max-w-lg w-[calc(100%-2.5rem)]">
+          <div className="absolute bottom-3 sm:bottom-5 left-1/2 -translate-x-1/2 bg-white border border-slate-200 shadow-xl rounded-full px-3 py-1.5 sm:px-5 sm:py-2.5 flex items-center justify-around z-40 max-w-lg w-[calc(100%-1rem)] sm:w-[calc(100%-2.5rem)]">
             
             {/* 1. السجل (Shift Logs / Ledger) */}
             <button
               onClick={() => setIsLogsOpen(true)}
-              className="flex flex-col items-center justify-center space-y-1 relative text-slate-450 hover:text-slate-800 transition-colors focus:outline-none cursor-pointer group min-w-[56px]"
+              className="flex flex-col items-center justify-center space-y-0.5 sm:space-y-1 relative text-slate-450 hover:text-slate-800 transition-colors focus:outline-none cursor-pointer group min-w-[48px] sm:min-w-[56px]"
               title="سجل العمليات"
               id="nav-btn-logs"
             >
               <div className="relative">
-                <ClipboardList className="w-5 h-5 text-slate-500 group-hover:text-slate-800 transition-colors" />
+                <ClipboardList className="w-4 h-4 sm:w-5 sm:h-5 text-slate-500 group-hover:text-slate-800 transition-colors" />
                 {logs.length > 0 && (
-                  <span className="absolute -top-1.5 -right-2 bg-amber-500 text-white text-[9px] font-mono font-black w-4.5 h-4.5 rounded-full flex items-center justify-center border border-white shadow-sm">
+                  <span className="absolute -top-1 -right-1.5 bg-amber-500 text-white text-[8px] sm:text-[9px] font-mono font-black w-3.5 h-3.5 sm:w-4.5 sm:h-4.5 rounded-full flex items-center justify-center border border-white shadow-sm">
                     {logs.length}
                   </span>
                 )}
               </div>
-              <span className="text-[10px] font-arabic font-bold text-slate-450 group-hover:text-slate-800 leading-none">
+              <span className="text-[9px] sm:text-[10px] font-arabic font-bold text-slate-450 group-hover:text-slate-800 leading-none">
                 السجل
               </span>
             </button>
@@ -740,14 +791,14 @@ export default function App() {
             {/* 2. المفضلة (Starred Procedures) */}
             <button
               onClick={() => setActiveTab('favorites')}
-              className={`flex flex-col items-center justify-center space-y-1 transition-colors focus:outline-none cursor-pointer min-w-[56px] ${
+              className={`flex flex-col items-center justify-center space-y-0.5 sm:space-y-1 transition-colors focus:outline-none cursor-pointer min-w-[48px] sm:min-w-[56px] ${
                 activeTab === 'favorites' ? 'text-[#059669]' : 'text-slate-450 hover:text-slate-800'
               }`}
               title="المفضلة"
               id="nav-btn-favorites"
             >
-              <Heart className={`w-5 h-5 ${activeTab === 'favorites' ? 'text-[#059669] fill-current' : 'text-slate-500'}`} />
-              <span className="text-[10px] font-arabic font-bold leading-none">
+              <Heart className={`w-4 h-4 sm:w-5 sm:h-5 ${activeTab === 'favorites' ? 'text-[#059669] fill-current' : 'text-slate-500'}`} />
+              <span className="text-[9px] sm:text-[10px] font-arabic font-bold leading-none">
                 المفضلة
               </span>
             </button>
@@ -755,14 +806,14 @@ export default function App() {
             {/* 3. بحث (Search Guidebook) */}
             <button
               onClick={() => setActiveTab('search')}
-              className={`flex flex-col items-center justify-center space-y-1 transition-colors focus:outline-none cursor-pointer min-w-[56px] ${
+              className={`flex flex-col items-center justify-center space-y-0.5 sm:space-y-1 transition-colors focus:outline-none cursor-pointer min-w-[48px] sm:min-w-[56px] ${
                 activeTab === 'search' ? 'text-[#059669]' : 'text-slate-450 hover:text-slate-800'
               }`}
               title="بحث"
               id="nav-btn-search"
             >
-              <Search className={`w-5 h-5 ${activeTab === 'search' ? 'text-[#059669]' : 'text-slate-500'}`} />
-              <span className="text-[10px] font-arabic font-bold leading-none">
+              <Search className={`w-4 h-4 sm:w-5 sm:h-5 ${activeTab === 'search' ? 'text-[#059669]' : 'text-slate-500'}`} />
+              <span className="text-[9px] sm:text-[10px] font-arabic font-bold leading-none">
                 بحث
               </span>
             </button>
@@ -773,15 +824,15 @@ export default function App() {
                 setActiveTab('driver_code');
                 setScreen('dashboard');
               }}
-              className={`flex flex-col items-center justify-center space-y-1 transition-colors focus:outline-none cursor-pointer min-w-[56px] ${
+              className={`flex flex-col items-center justify-center space-y-0.5 sm:space-y-1 transition-colors focus:outline-none cursor-pointer min-w-[48px] sm:min-w-[56px] ${
                 activeTab === 'driver_code' ? 'text-[#059669]' : 'text-slate-450 hover:text-slate-800'
               }`}
               title="كود قائد القطار"
               id="nav-btn-driver-code"
             >
-              <UserCheck className={`w-5 h-5 ${activeTab === 'driver_code' ? 'text-[#059669]' : 'text-slate-500'}`} />
-              <span className="text-[10px] font-arabic font-bold leading-none">
-                كود قائد القطار
+              <UserCheck className={`w-4 h-4 sm:w-5 sm:h-5 ${activeTab === 'driver_code' ? 'text-[#059669]' : 'text-slate-500'}`} />
+              <span className="text-[9px] sm:text-[10px] font-arabic font-bold leading-none">
+                بياناتك
               </span>
             </button>
 
@@ -791,14 +842,14 @@ export default function App() {
                 setActiveTab('home');
                 setScreen('dashboard');
               }}
-              className={`flex flex-col items-center justify-center space-y-1 transition-colors focus:outline-none cursor-pointer min-w-[56px] ${
+              className={`flex flex-col items-center justify-center space-y-0.5 sm:space-y-1 transition-colors focus:outline-none cursor-pointer min-w-[48px] sm:min-w-[56px] ${
                 activeTab === 'home' ? 'text-[#059669]' : 'text-slate-450 hover:text-slate-800'
               }`}
               title="الرئيسية"
               id="nav-btn-home"
             >
-              <Home className={`w-5 h-5 ${activeTab === 'home' ? 'text-[#059669]' : 'text-slate-500'}`} />
-              <span className="text-[10px] font-arabic font-bold leading-none">
+              <Home className={`w-4 h-4 sm:w-5 sm:h-5 ${activeTab === 'home' ? 'text-[#059669]' : 'text-slate-500'}`} />
+              <span className="text-[9px] sm:text-[10px] font-arabic font-bold leading-none">
                 الرئيسية
               </span>
             </button>

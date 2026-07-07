@@ -484,7 +484,7 @@ export default function DriverCodePanel({
 
               {/* Current Active Badge Display */}
               <div className="mt-4 pt-4 border-t border-slate-100 bg-slate-50/50 rounded-xl p-3 text-center">
-                <span className="text-[10px] font-mono font-black text-slate-400 block uppercase mb-1">CURRENT ACTIVE CREW & LOCATION</span>
+                <span className="text-[10px] font-arabic font-extrabold text-slate-400 block mb-1">بيانات قائد القطار الحالي والموقع النشط</span>
                 <div className="flex flex-col items-center justify-center space-y-1.5">
                   <div className="flex items-center justify-center space-x-3 text-xs font-bold text-slate-800">
                     <span className="flex items-center space-x-1">
@@ -739,8 +739,7 @@ export default function DriverCodePanel({
                 <input
                   type="text"
                   value={notesSearch}
-                  onChange={(e) => setNewNoteDraft(e.target.value)} // Keep sync of search query if they want to filter
-                  onInput={(e: React.FormEvent<HTMLInputElement>) => setNotesSearch((e.target as HTMLInputElement).value)}
+                  onChange={(e) => setNotesSearch(e.target.value)} // Keep sync of search query if they want to filter
                   className="block w-full pr-9 pl-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:border-[#059669] focus:bg-white text-right text-xs font-bold"
                   placeholder="بحث في الملاحظات والقطارات..."
                 />

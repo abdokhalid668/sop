@@ -1,4 +1,5 @@
 import { SOP } from './types';
+import { EMERGENCY_SOPS } from './data_emergency';
 
 export const SOPS_DATA: SOP[] = [
   // --- NORMAL SOPS (14 SOPs from official booklet) ---
@@ -937,13 +938,13 @@ export const SOPS_DATA: SOP[] = [
     }
   },
 
-  // --- DEGRADED SOPS (2 SOPs from previous versions) ---
+  // --- DEGRADED SOPS (Comprehensive 15 Degraded SOPs from official booklet) ---
   {
     sop_code: "DRI-DEG-103",
     category: "degraded",
     title_en: "On Board Radio System Failure",
     title_ar: "عطل نظام الراديو على متن القطار",
-    reference_documents: ["Capital Train Operator Rulebook", "RDMC LRT Incident Management Plan"],
+    reference_documents: ["Capital Train Operator Rulebook Section 4.1", "SOPs DRI - Degraded Mode Page 6"],
     metadata: {
       "P1": {
         "type": "point_of_attention",
@@ -952,8 +953,8 @@ export const SOPS_DATA: SOP[] = [
       },
       "S1": {
         "type": "safety_point",
-        "text_ar": "- لاستخدام هاتف الإشارة المتواجد على الرصيف أو هاتف الطوارئ الملحق بالإشارات، سيقوم قائد القطار بمغادرة الكابينة بعد اتخاذ جميع تدابير السلامة لمغادرة الكابينة.\n- إذا كان القطار بين محطتين، سيجد أقرب هاتف طوارئ ملحق بالإشارة.\n- إذا كان القطار متواجداً على الرصيف، فيمكن لقائد القطار استخدام الهاتف الموجود على الرصيف أسفل شاشة DTI.",
-        "text_en": "- To use the platform signal telephone or the signal-mounted emergency phone, the train driver will exit the cab after taking all safety measures for leaving the cab.\n- If the train is between two stations, find the nearest signal-attached emergency phone.\n- If the train is at a platform, the driver can use the platform phone located beneath the DTI screen."
+        "text_ar": "لاستخدام هاتف الإشارة المتواجد على الرصيف أو هاتف الطوارئ الملحق بالإشارات، سيقوم قائد القطار بمغادرة الكابينة بعد اتخاذ جميع تدابير السلامة لمغادرة الكابينة. إذا كان القطار بين محطتين، سيجد أقرب هاتف طوارئ ملحق بالإشارة. وإذا كان القطار متواجداً على الرصيف، فيمكنه استخدام هاتف الرصيف أسفل شاشة DTI.",
+        "text_en": "To use the platform signal phone or the signal-mounted emergency phone, the driver must exit the cab after taking all safety measures. If between stations, find the nearest signal-attached emergency phone. If at platform, use the platform phone under the DTI screen."
       }
     },
     flowchart: {
@@ -961,200 +962,991 @@ export const SOPS_DATA: SOP[] = [
         "text_ar": "يكتشف قائد القطار مشكلة أو تم إبلاغه بوجود عطل في نظام الراديو الموجود على متن القطار",
         "text_en": "Train Driver detects a problem or is notified of an on-board radio system failure.",
         "linked_metadata": ["P1"],
-        "next": "q1"
+        "next": "q_handset_works"
       },
-      "q1": {
+      "q_handset_works": {
         "type": "question",
-        "text_ar": "جهاز اللاسلكي يعمل؟",
-        "text_en": "Is the wireless handset/radio working?",
+        "text_ar": "هل جهاز اللاسلكي المحمول يعمل؟",
+        "text_en": "Is the portable wireless handset working?",
         "yes": "action_wireless_ok",
         "no": "action_wireless_failed"
       },
       "action_wireless_failed": {
         "type": "action",
-        "text_ar": "عند توقف القطار استخدم أقرب هاتف إشارات متاح لإبلاغ مركز التحكم بعطل الراديو",
+        "text_ar": "عند توقف القطار تماماً، استخدم أقرب هاتف إشارات متاح لإبلاغ مركز التحكم بعطل الراديو",
         "text_en": "Once the train is safely stopped, use the nearest available signal phone to report the radio failure to the Control Center.",
         "linked_metadata": ["S1"],
         "next": "follow_cc_end"
       },
-      "follow_cc_end": {
-        "type": "action",
-        "text_ar": "اتبع تعليمات التحكم المركزي",
-        "text_en": "Follow Central Control (CC) instructions.",
-        "next": "END"
-      },
       "action_wireless_ok": {
         "type": "action",
-        "text_ar": "قم بالاتصال بالتحكم المركزي باستخدام اللاسلكي لإبلاغه بالموقف.\nثم قم بإعادة ضبط الراديو من خلال زر التشغيل / الإيقاف ON/OFF.\nحاول الاتصال بالتحكم المركزي من خلال الراديو.",
-        "text_en": "Contact Central Control via wireless handset to report the situation.\nThen reset the radio using the ON/OFF button.\nAttempt to communicate with Central Control via the main radio.",
-        "next": "q2"
+        "text_ar": "اتصل بالتحكم المركزي باللاسلكي وأعد ضبط الراديو من خلال زر التشغيل/الإيقاف ON/OFF ثم حاول الاتصال بالراديو",
+        "text_en": "Contact Central Control via wireless, reset the radio using the ON/OFF button, and try communicating via the main radio.",
+        "next": "q_reset_success"
       },
-      "q2": {
+      "q_reset_success": {
         "type": "question",
-        "text_ar": "الراديو يعمل بعد إعادة الضبط؟",
+        "text_ar": "هل يعمل الراديو بشكل طبيعي بعد إعادة الضبط؟",
         "text_en": "Is the radio working normally after the reset?",
         "yes": "follow_cc_end",
         "no": "action_reset_failed"
       },
       "action_reset_failed": {
         "type": "action",
-        "text_ar": "قم بالاتصال بالتحكم المركزي باستخدام اللاسلكي لإبلاغه بالموقف.\nاستأنف الرحلة حتى المحطة الانتهائية ما لم يتم إبلاغك بخلاف ذلك من قبل التحكم المركزي.\nعند المحطة الانتهائية بلّغ التحكم المركزي بطلب تدخل الصيانة لإصلاح العطل.",
-        "text_en": "Contact Central Control via wireless handset to report the situation.\nResume the trip to the terminal station unless instructed otherwise by Central Control.\nUpon arrival at the terminal, request maintenance intervention from CC to repair the defect.",
+        "text_ar": "اتصل بالتحكم المركزي باللاسلكي واستأنف الرحلة للمحطة النهائية، واطلب صيانة عند الوصول لتصليح العطل",
+        "text_en": "Contact Central Control via wireless, resume the trip to the terminal, and request maintenance upon arrival.",
         "next": "follow_cc_end"
+      },
+      "follow_cc_end": {
+        "type": "action",
+        "text_ar": "اتبع تعليمات التحكم المركزي واستكمل المسير بحذر وفق التوجيهات",
+        "text_en": "Follow Central Control instructions and proceed carefully as directed.",
+        "next": "END"
       },
       "END": {
         "type": "end",
-        "text_ar": "النهاية: تم تنفيذ الإجراء بنجاح ومتابعة مركز التحكم",
-        "text_en": "END: Procedure executed successfully. Central Control monitoring active."
+        "text_ar": "تم تنفيذ الإجراء وتأمين الاتصال والمتابعة مع مركز التحكم بنجاح",
+        "text_en": "Procedure executed, communication secured, and monitoring active."
       }
     }
   },
   {
-    sop_code: "DRI-DEG-104",
+    sop_code: "DRI-DEG-105",
     category: "degraded",
-    title_en: "Platform Screen Door Mismatch",
-    title_ar: "عدم تطابق أبواب رصيف المحطة مع أبواب القطار",
-    reference_documents: ["LRT Station Operations Manual Section 4", "PSD Integration Manual"],
+    title_en: "Provisional Service & Temporary Single Track",
+    title_ar: "التدوير وخط مفرد مؤقت",
+    reference_documents: ["Capital Train Operator Rulebook Section 4.2", "SOPs DRI - Degraded Mode Page 8"],
     metadata: {
-      "P1": {
-        "type": "point_of_attention",
-        "text_ar": "يجب على قائد القطار تفقد رصيف المحطة من خلال المرآة أو شاشة CCTV للتأكد من عدم وجود ركاب محشورين بين القطار والرصيف.",
-        "text_en": "The train driver must inspect the platform via the side mirrors or CCTV feed to ensure no passengers are caught between the train and PSD."
-      },
       "S1": {
         "type": "safety_point",
-        "text_ar": "يمنع تماماً محاولة تحريك القطار طالما أن أبواب الرصيف مفتوحة ولم يتم تجاوزها بقرار رسمي من مركز التحكم ومفتاح التجاوز مغلق.",
-        "text_en": "It is strictly forbidden to attempt moving the train as long as platform screen doors are open, unless overridden by an official CC decision with the bypass switch locked."
+        "text_ar": "يجب على قائد القطار إصدار إذاعة عامة لإعلام الركاب بالمحطة الانتهائية الجديدة والوضع الحالي والالتزام بحدود السرعة والإشارات بدقة.",
+        "text_en": "The driver must issue a passenger announcement to inform them of the new terminal and current status, and strictly adhere to speed limits and signals."
+      },
+      "P1": {
+        "type": "point_of_attention",
+        "text_ar": "التدوير (Provisional Service) هو عبارة عن تدوير القطار من نقطة إلى نقطة في حالة وجود غير طبيعي على السكة ويمكن أن يكون التدوير من خلال تحويلة أمامية أو خلفية للمحطة.",
+        "text_en": "Provisional Service refers to turning the train from point to point during abnormal situations. This shunting can be via front or rear switches."
+      },
+      "P2": {
+        "type": "point_of_attention",
+        "text_ar": "خط مفرد مؤقت (Temporary Single Track) هو عبارة عن تدوير القطار من نقطة إلى نقطة في حالة وجود عارض طبيعي على السكة ويتم بين محطتين على نفس السكة.",
+        "text_en": "Temporary Single Track (TST) is operating trains on a single track between two stations due to track obstructions."
       }
     },
     flowchart: {
       "start": {
-        "text_ar": "يتوقف القطار في المحطة ولكن لا تتطابق الأبواب أو لا تفتح أبواب الرصيف تلقائياً.",
-        "text_en": "Train stops at station but doors do not align or platform screen doors (PSD) fail to open automatically.",
-        "linked_metadata": ["P1"],
-        "next": "q1"
+        "text_ar": "يطلب التحكم المركزي تطبيق عملية التدوير أو القيادة على خط مفرد مؤقت TST",
+        "text_en": "Central Control requests provisional service or temporary single track (TST) operation.",
+        "next": "action_get_instructions"
       },
-      "q1": {
-        "type": "question",
-        "text_ar": "هل مؤشر محاذاة القطار (Stop Board / Align Indicator) مضاء باللون الأخضر بالكابينة؟",
-        "text_en": "Is the train alignment indicator (Stop Board / Align Indicator) illuminated green in the cab?",
-        "yes": "action_manual_open",
-        "no": "action_inch_train"
-      },
-      "action_inch_train": {
+      "action_get_instructions": {
         "type": "action",
-        "text_ar": "قم بتحريك القطار ببطء شديد للأمام أو الخلف (Inching) حتى يتطابق مؤشر الوقوف بدقة.",
-        "text_en": "Move the train very slowly forward or backward (Inching) until the stop board indicator is precisely aligned.",
+        "text_ar": "اسأل عن المحطة الانتهائية وطريق المسير واتبع تعليمات التحكم المركزي مع استخدام نظام LMD إذا تم التوجيه",
+        "text_en": "Ask about the terminal station and path, follow CC instructions, and use LMD mode if directed.",
         "linked_metadata": ["S1"],
-        "next": "q2"
+        "next": "action_announce_provisional"
       },
-      "q2": {
-        "type": "question",
-        "text_ar": "هل الأبواب تفتح الآن تلقائياً بعد تصحيح الوقوف؟",
-        "text_en": "Do the doors open automatically now after aligning?",
-        "yes": "END",
-        "no": "action_manual_open"
-      },
-      "action_manual_open": {
+      "action_announce_provisional": {
         "type": "action",
-        "text_ar": "اضغط على زر الفتح اليدوي المزدوج لأبواب القطار وأبواب الرصيف معاً.",
-        "text_en": "Press the dual manual open button for both train doors and platform screen doors simultaneously.",
-        "next": "q3"
+        "text_ar": "قم بإصدار إذاعة عامة للركاب لإبلاغهم بالوضع الحالي والمحطة الانتهائية الجديدة وتكرارها في كل محطة قبل غلق الأبواب",
+        "text_en": "Issue a PA announcement to passengers regarding the new terminal and repeat at each station before door closure.",
+        "next": "q_operation_type"
       },
-      "q3": {
+      "q_operation_type": {
         "type": "question",
-        "text_ar": "هل فتحت أبواب الرصيف بالكامل وتمكن الركاب من الخروج؟",
-        "text_en": "Are the platform screen doors fully open allowing passenger egress?",
-        "yes": "END",
-        "no": "action_local_bypass"
+        "text_ar": "ما هو نوع الإجراء المطلوب تطبيقه؟",
+        "text_en": "What is the type of procedure to be applied?",
+        "yes": "action_front_shunting", // Option Front Shunting
+        "no": "q_is_rear_shunting"
       },
-      "action_local_bypass": {
+      "q_is_rear_shunting": {
+        "type": "question",
+        "text_ar": "هل المطلوب هو 'التدوير من تحويلة خلفية'؟",
+        "text_en": "Is the required procedure 'Rear Shunting'?",
+        "yes": "action_rear_shunting",
+        "no": "action_tst_single_track"
+      },
+      "action_front_shunting": {
         "type": "action",
-        "text_ar": "أبلغ ناظر المحطة لاستخدام مفتاح الفتح المحلي لكل باب رصيف يدوياً، واستأذن مركز التحكم للتجاوز عند المغادرة.",
-        "text_en": "Notify the Station Master to use the local manual override key for each platform door, and request CC permission to bypass on departure.",
+        "text_ar": "التدوير من التحويلة الأمامية (DRI-DEG-105-1): أبلغ الركاب بنهاية الخدمة وإخلاء القطار، غير الكابينة وتأكد من الصالون، ثم اطلب تصريح حركة واتبع السيمافورات",
+        "text_en": "Front Shunting (DRI-DEG-105-1): Notify passengers to evacuate, change cab, verify saloon, request movement authority, and follow signals.",
+        "linked_metadata": ["P1"],
+        "next": "END"
+      },
+      "action_rear_shunting": {
+        "type": "action",
+        "text_ar": "التدوير من التحويلة الخلفية (DRI-DEG-105-2): أبلغ الركاب بنهاية الخدمة، غير الكابينة وتأكد من خلو الصالون، ثم سر للنقطة التالية والتزم بالسيمافورات وافتح ناحية الرصيف",
+        "text_en": "Rear Shunting (DRI-DEG-105-2): Notify passengers to evacuate, change cab, inspect saloon, drive to the next point following signals, and open platform side doors.",
+        "linked_metadata": ["P1"],
+        "next": "END"
+      },
+      "action_tst_single_track": {
+        "type": "action",
+        "text_ar": "خط مفرد مؤقت (DRI-DEG-105-3): أبلغ الركاب، غير الكابينة وتفقد خلو القطار، ثم سر بالاتجاه المفرد وافتح الأبواب ناحية الرصيف في المحطة المقابلة",
+        "text_en": "Temporary Single Track (DRI-DEG-105-3): Inform passengers, change cab, inspect saloon, drive on the single track, and open platform side doors at the opposite station.",
+        "linked_metadata": ["P2"],
+        "next": "END"
+      },
+      "END": {
+        "type": "end",
+        "text_ar": "تم إكمال التدوير/الخط المفرد المؤقت بنجاح وبأمان",
+        "text_en": "Provisional service / TST completed successfully and safely."
+      }
+    }
+  },
+  {
+    sop_code: "DRI-DEG-106",
+    category: "degraded",
+    title_en: "Driving Opposite the Normal Direction",
+    title_ar: "القيادة عكس الاتجاه",
+    reference_documents: ["Capital Train Operator Rulebook Section 4.3", "SOPs DRI - Degraded Mode Page 13"],
+    metadata: {
+      "S1": {
+        "type": "safety_point",
+        "text_ar": "يجب أن تكون جميع حركات القطار عكس الاتجاه مصرحة ومؤكدة بالكامل من التحكم المركزي OCC، ويجب الالتزام بأنظمة السرعة المقررة واليقظة الكاملة.",
+        "text_en": "All train movements opposite to normal direction must be fully authorized and confirmed by OCC. Adhere to specified speed limits and maintain full alertness."
+      },
+      "S2": {
+        "type": "safety_point",
+        "text_ar": "أكد مع التحكم المركزي أثناء تواجدك في المحطة أن التحاويل معدة على الاتجاه الجديد وتأكد أيضاً مع التحكم المركزي من نظام القيادة والسرعة المراد استخدامها.",
+        "text_en": "Confirm with CC while at the station that switches are aligned for the new direction, and verify the driving system and speed limit to be used."
+      },
+      "P1": {
+        "type": "point_of_attention",
+        "text_ar": "قم بإصدار إذاعة عامة للركاب لإبلاغهم بالرصيف الجديد والمحطة الانتهائية وتنبيههم لاتجاه فتح الأبواب قبل الدخول للمحطة لتفادي أي ارتباك.",
+        "text_en": "Issue a passenger announcement to inform them of the new platform, terminal station, and warn them of the door-opening side before station arrival to prevent confusion."
+      }
+    },
+    flowchart: {
+      "start": {
+        "text_ar": "يصدر التحكم المركزي التعليمات لقائد القطار بالقيادة عكس اتجاه المسير",
+        "text_en": "Central Control issues instructions to drive the train opposite to the normal direction.",
+        "linked_metadata": ["S1"],
+        "next": "action_confirm_route"
+      },
+      "action_confirm_route": {
+        "type": "action",
+        "text_ar": "احصل على تأكيد من التحكم المركزي حول اتجاه المسير والمحطات الابتدائية والانتهائية وتحقق من إعداد التحاويل والسرعة المقررة",
+        "text_en": "Obtain confirmation from CC regarding direction, start/end stations, switch alignment, and authorized speed limit.",
+        "linked_metadata": ["S2"],
+        "next": "action_announce_passengers"
+      },
+      "action_announce_passengers": {
+        "type": "action",
+        "text_ar": "قم بإصدار إذاعة عامة للركاب لإبلاغهم بالرصيف الجديد والمحطة الانتهائية وباتجاه فتح الأبواب قبل دخول المحطات",
+        "text_en": "Issue a PA announcement to passengers to inform them of the new platform, terminal, and door opening side before entering stations.",
+        "linked_metadata": ["P1"],
+        "next": "action_terminal_verify"
+      },
+      "action_terminal_verify": {
+        "type": "action",
+        "text_ar": "عند الوصول للمحطة الانتهائية، أكد مع التحكم المركزي حول وضع التحويلة والتعليمات الجديدة التي يجب اتباعها",
+        "text_en": "Upon arriving at the terminal station, confirm switch status and new instructions with Central Control.",
+        "next": "action_final_announcement"
+      },
+      "action_final_announcement": {
+        "type": "action",
+        "text_ar": "قم بإصدار إذاعة عامة أخيرة للركاب لتنبيههم باتجاه الرصيف الجديد واتجاه فتح الأبواب",
+        "text_en": "Broadcast a final announcement to passengers notifying them of the new platform and door opening side.",
+        "next": "END"
+      },
+      "END": {
+        "type": "end",
+        "text_ar": "تم إتمام القيادة عكس الاتجاه وتأمين حركة الركاب بنجاح",
+        "text_en": "Driving opposite the normal direction completed and passenger safety secured."
+      }
+    }
+  },
+  {
+    sop_code: "DRI-DEG-107",
+    category: "degraded",
+    title_en: "Management of Restrictive Signal in Non-CBTC Mode",
+    title_ar: "التعامل مع سيمافور غير مصرح في وضع Non-CBTC",
+    reference_documents: ["Capital Train Operator Rulebook Section 4.4", "SOPs DRI - Degraded Mode Page 15"],
+    metadata: {
+      "S1": {
+        "type": "safety_point",
+        "text_ar": "القطار في وضع Non-CBTC والسيمافور القادم على السكة غير مصرح (أحمر). يجب إيقاف القطار فوراً قبل السيمافور وتجنب تجاوزه بدون تصريح خطي أو لفظي رسمي معتمد.",
+        "text_en": "Train is in Non-CBTC mode and the upcoming signal is restrictive (red). Stop immediately before the signal and never pass without formal permission."
+      },
+      "P1": {
+        "type": "point_of_attention",
+        "text_ar": "عند تلقي تصريح التجاوز، يجب إعادة صياغة الإقرار وقراءته بدقة شاملاً رقم المهمة والقطار والسيمافور والسكة والتاريخ والوقت في جملة واحدة للتأكيد.",
+        "text_en": "Upon receiving the bypass permit, repeat the permission statement exactly, including mission, train, signal, track, date, and time in a single continuous sentence for confirmation."
+      }
+    },
+    flowchart: {
+      "start": {
+        "text_ar": "يقترب القطار في وضع Non-CBTC من سيمافور يعطي دلالة عدم عبور (مقيد / أحمر)",
+        "text_en": "Train in Non-CBTC mode approaches a restrictive signal (red/no-passage).",
+        "linked_metadata": ["S1"],
+        "next": "action_stop_before_signal"
+      },
+      "action_stop_before_signal": {
+        "type": "action",
+        "text_ar": "قم بإيقاف القطار فوراً بالكامل قبل السيمافور، ثم أبلغ التحكم المركزي برقم السيمافور وحالته وموقعك",
+        "text_en": "Immediately stop the train fully before the signal, and report the signal number, status, and your position to CC.",
+        "next": "action_wait_directives"
+      },
+      "action_wait_directives": {
+        "type": "action",
+        "text_ar": "انتظر تعليمات التحكم المركزي وإذا لزم الأمر قم بعمل إذاعة طمأنة عامة على الركاب بالقطار",
+        "text_en": "Wait for Central Control directives and issue a passenger reassurance announcement if necessary.",
+        "next": "action_receive_bypass_permit"
+      },
+      "action_receive_bypass_permit": {
+        "type": "action",
+        "text_ar": "تلق تصريح التجاوز وقم بإعادة قراءته بدقة: 'مراقب الحركة يعطي تصريح تجاوز للسيمافور رقم XXX لقطار XXX على سكة XXX حتى سيمافور XXX بتاريخ ووقت...'",
+        "text_en": "Receive bypass permit and repeat it back exactly: 'Traffic controller authorizes bypass of signal XXX for train XXX on track XXX up to signal XXX on date/time...'",
+        "linked_metadata": ["P1"],
+        "next": "q_is_at_platform_107"
+      },
+      "q_is_at_platform_107": {
+        "type": "question",
+        "text_ar": "هل يتواجد القطار حالياً بمحاذاة رصيف المحطة؟",
+        "text_en": "Is the train currently aligned at a station platform?",
+        "yes": "action_check_mirror_move",
+        "no": "action_write_driver_form"
+      },
+      "action_check_mirror_move": {
+        "type": "action",
+        "text_ar": "تأكد من وضع الأبواب وسلامتها باستخدام مرآة الرصيف وشاشات CCTV قبل تحريك القطار وتجاوز السيمافور",
+        "text_en": "Verify doors status and safety using the platform mirror and CCTV before moving the train to bypass the signal.",
+        "next": "action_write_driver_form"
+      },
+      "action_write_driver_form": {
+        "type": "action",
+        "text_ar": "عند الوصول للمحطة الانتهائية، قم بملء وكتابة نموذج السائق (The Driver Form) لتسجيل تفاصيل واقعة التجاوز",
+        "text_en": "Upon arrival at the terminal station, complete the Driver Form to log the bypass incident details.",
+        "next": "END"
+      },
+      "END": {
+        "type": "end",
+        "text_ar": "تم تجاوز السيمافور المقيد بنجاح وبطريقة قانونية آمنة وفقاً للبروتوكول",
+        "text_en": "Restrictive signal bypassed successfully and safely in accordance with protocol."
+      }
+    }
+  },
+  {
+    sop_code: "DRI-DEG-108",
+    category: "degraded",
+    title_en: "Signal Passed at Danger (SPAD)",
+    title_ar: "تجاوز سيمافور غير مصرح",
+    reference_documents: ["Capital Train Operator Rulebook Section 4.5", "SOPs DRI - Degraded Mode Page 17"],
+    metadata: {
+      "S1": {
+        "type": "safety_point",
+        "text_ar": "تجاوز السيمافور المقيد بدون تصريح مسبق يمثل خطورة بالغة. يجب تطبيق رباط الطوارئ فوراً لإيقاف القطار، وإجراء مكالمة طوارئ عاجلة لإبلاغ مركز التحكم.",
+        "text_en": "Bypassing a restrictive signal without authorization is extremely dangerous. Apply emergency brakes immediately to stop the train and make an urgent emergency call to CC."
+      },
+      "S2": {
+        "type": "safety_point",
+        "text_ar": "يحظر استئناف الخدمة بنفسك إلا بعد صدور قرار واضح من التحكم المركزي أو استبدالك بقائد قطار آخر (قائد بديل) لضمان السلامة الفنية والذهنية.",
+        "text_en": "Resuming service by yourself is prohibited until a clear decision is issued by CC or you are replaced by a relief driver to ensure safety."
+      },
+      "P1": {
+        "type": "point_of_attention",
+        "text_ar": "يجب تسجيل رقم السيمافور المتجاوز ودلالته الدقيقة والمسافة التقريبية بعد التجاوز، والاحتفاظ ببيانات السرعة والوقت المسجلة في الـ TCMS.",
+        "text_en": "The bypassed signal number, its exact indication, and the approximate overrun distance must be noted, keeping speed and time records from TCMS."
+      },
+      "P2": {
+        "type": "point_of_attention",
+        "text_ar": "من الممكن أن يرسل التحكم المركزي مشرف نقل (Transport Supervisor) أو قائد بديل لتسلم القيادة واستكمال الرحلة للمحطة الانتهائية.",
+        "text_en": "Central Control may dispatch a Transport Supervisor or relief driver to take over driving and complete the trip to the terminal."
+      }
+    },
+    flowchart: {
+      "start": {
+        "text_ar": "يتجاوز قائد القطار سيمافور مقيد (أحمر) بدون تصريح مسبق من التحكم المركزي",
+        "text_en": "Train driver bypasses a restrictive signal (red) without prior Central Control authorization.",
+        "linked_metadata": ["S1"],
+        "next": "action_emergency_braking"
+      },
+      "action_emergency_braking": {
+        "type": "action",
+        "text_ar": "طبق رباط الطوارئ فوراً لإيقاف القطار بالكامل، واجر مكالمة طوارئ عاجلة لإبلاغ التحكم المركزي بالموقف والسيمافور المتجاوز",
+        "text_en": "Apply emergency brakes immediately to fully stop the train, and make an urgent emergency call to CC to report the SPAD.",
+        "linked_metadata": ["P1"],
+        "next": "action_verify_passengers"
+      },
+      "action_verify_passengers": {
+        "type": "action",
+        "text_ar": "راقب الركاب عبر CCTV وأجهزة الاتصال الداخلي لتهدئة الأوضاع، بانتظار تعليمات وقرار مركز التحكم",
+        "text_en": "Monitor passengers via CCTV and interphone to maintain calm, awaiting Central Control instructions.",
+        "next": "q_is_relief_ready"
+      },
+      "q_is_relief_ready": {
+        "type": "question",
+        "text_ar": "هل قائد القطار البديل (الاحتياطي/المشرف) متواجد وجاهز لتسلم الكابينة؟",
+        "text_en": "Is the relief driver (backup/supervisor) present and ready to take over?",
+        "yes": "action_handover_relief",
+        "no": "action_continue_under_orders"
+      },
+      "action_handover_relief": {
+        "type": "action",
+        "text_ar": "اتبع تعليمات التحكم المركزي لتسليم الكابينة والقطار بالكامل للقائد البديل وغادر الكابينة فوراً للصالون",
+        "text_en": "Follow CC instructions to hand over the cab and train to the relief driver, then exit the cab to the saloon.",
+        "linked_metadata": ["P2"],
+        "next": "action_report_handover"
+      },
+      "action_report_handover": {
+        "type": "action",
+        "text_ar": "أبلغ مركز التحكم بإتمام عملية التسليم، وتوجه لكتابة تقرير تفصيلي بالواقعة في محطة التوقف القادمة",
+        "text_en": "Notify CC of completed handover, and proceed to write a detailed incident report at the next station.",
+        "next": "END"
+      },
+      "action_continue_under_orders": {
+        "type": "action",
+        "text_ar": "استأنف المسير بنفسك بحذر شديد للمحطة الانتهائية بناء على تعليمات صريحة ومقيدة من التحكم المركزي وتوجيهات الصيانة",
+        "text_en": "Resume driving with extreme caution to the terminal based on explicit restricted orders from CC and maintenance.",
+        "linked_metadata": ["S2"],
+        "next": "action_write_report_terminal"
+      },
+      "action_write_report_terminal": {
+        "type": "action",
+        "text_ar": "عند المحطة الانتهائية، بلّغ الصيانة لفحص القطار واكتب تقرير قائد القطار موضحاً كافة ملابسات التجاوز",
+        "text_en": "At the terminal station, request maintenance inspection and write the driver report detailing the SPAD incident.",
+        "next": "END"
+      },
+      "END": {
+        "type": "end",
+        "text_ar": "تمت معالجة واقعة التجاوز وتأمين مسار القطار والركاب وإعداد التقارير الفنية المعتمدة",
+        "text_en": "SPAD incident managed, train and passengers secured, and technical reports logged."
+      }
+    }
+  },
+  {
+    sop_code: "DRI-DEG-109",
+    category: "degraded",
+    title_en: "Train Not Correctly Docked (Over/Under Run)",
+    title_ar: "وقوف غير صحيح للقطار",
+    reference_documents: ["Capital Train Operator Rulebook Section 4.6", "SOPs DRI - Degraded Mode Page 19"],
+    metadata: {
+      "S1": {
+        "type": "safety_point",
+        "text_ar": "في حال تجاوز القطار لرصيف المحطة بـ 4 أبواب أو أكثر، يحظر تماماً محاولة الرجوع للخلف دون تصريح رسمي، ويجب تأمين الأبواب التي خارج الرصيف عبر عزلها قبل فتح باقي الأبواب لسلامة الركاب.",
+        "text_en": "If the train overruns the platform by 4 or more doors, reversing without authorization is strictly prohibited. Doors outside the platform must be isolated before opening others."
+      },
+      "P1": {
+        "type": "point_of_attention",
+        "text_ar": "يتكون الإجراء من حالتين: تجاوز المحطة (Overrun) أو الوقوف قبل علامة الوقوف (Underrun). يتطلب الوقوف قبل العلامة تحويلاً لـ LMD لتعديل موضع القطار ببطء.",
+        "text_en": "The procedure covers two cases: Overrun (exceeding SSP) or Underrun (stopping before SSP). Underrun requires switching to LMD to adjust position slowly."
+      }
+    },
+    flowchart: {
+      "start": {
+        "text_ar": "يتوقف القطار بالرصيف ولكن بشكل غير صحيح (لم يتطابق بدقة مع نقطة الوقوف SSP)",
+        "text_en": "Train stops at platform but incorrectly (not aligned precisely with SSP stop point).",
+        "linked_metadata": ["P1"],
+        "next": "q_dock_type"
+      },
+      "q_dock_type": {
+        "type": "question",
+        "text_ar": "هل حالة عدم التطابق هي 'تجاوز المحطة' (Overrun)؟",
+        "text_en": "Is the mismatch case an 'Overrun' (exceeding SSP)?",
+        "yes": "action_overrun_proc",
+        "no": "action_underrun_proc"
+      },
+      "action_underrun_proc": {
+        "type": "action",
+        "text_ar": "الوقوف قبل العلامة (DRI-DEG-109-2): حول لنظام القيادة اليدوية LMD، وتحرك للأمام ببطء حتى شاشة DMI تؤكد التطابق، وافتح أبواب الرصيف وأبلغ مركز التحكم ثم اكتب تقريراً",
+        "text_en": "Underrun (DRI-DEG-109-2): Switch to LMD, inch forward slowly until DMI confirms alignment, open platform doors, notify CC, and write report.",
+        "next": "END"
+      },
+      "action_overrun_proc": {
+        "type": "action",
+        "text_ar": "تجاوز المحطة (DRI-DEG-109-1): أبلغ مركز التحكم بموقع القطار الدقيق تمهيداً لاتخاذ قرار التجاوز والوقوف",
+        "text_en": "Overrun (DRI-DEG-109-1): Notify Central Control of the exact train position to decide on the bypass or adjustment.",
+        "next": "q_is_4_doors_over"
+      },
+      "q_is_4_doors_over": {
+        "type": "question",
+        "text_ar": "هل تجاوز القطار نقطة الوقوف SSP بمقدار 4 أبواب أو أكثر؟",
+        "text_en": "Has the train overshot the SSP by 4 or more doors?",
+        "yes": "action_isolate_outer_doors",
+        "no": "action_reverse_adjust"
+      },
+      "action_reverse_adjust": {
+        "type": "action",
+        "text_ar": "أقل من 4 أبواب: أعلن للركاب بالتوجه للآخرين، ألغ تفعيل الكابينة وغادر للتوجه للكابينة الخلفية وتفعيلها والرجوع ببطء وتعديل الموضع بتصريح التحكم، ثم افتح الأبواب",
+        "text_en": "Under 4 doors: Inform passengers, deactivate cab, walk to rear cab, activate it, reverse slowly to adjust position with CC permit, then open doors.",
+        "next": "END"
+      },
+      "action_isolate_outer_doors": {
+        "type": "action",
+        "text_ar": "4 أبواب أو أكثر: أعلن للركاب بعدم الفتح للسلامة، غادر الكابينة لعزل الأبواب المتواجدة خارج الرصيف ميكانيكياً، عد للكابينة واطلب تصريح حركة وافتح الأبواب الآمنة على الرصيف",
+        "text_en": "4 or more doors: Announce passengers to stay calm, leave cab to mechanically isolate doors outside platform, return and get CC permit, then open safe doors.",
         "linked_metadata": ["S1"],
         "next": "END"
       },
       "END": {
         "type": "end",
-        "text_ar": "تم حل المشكلة وتأمين الرصيف لمتابعة الخدمة",
-        "text_en": "Mismatch resolved or bypassed. Platform secured to resume service."
+        "text_ar": "تمت معالجة وقوف القطار غير الصحيح وتأمين فتح الأبواب والركاب بنجاح",
+        "text_en": "Incorrect docking managed, doors opened safely, and passengers secured."
+      }
+    }
+  },
+  {
+    sop_code: "DRI-DEG-110",
+    category: "degraded",
+    title_en: "Wrong Side Door Opening",
+    title_ar: "فتح الباب الجانبي في الاتجاه الخاطئ",
+    reference_documents: ["Capital Train Operator Rulebook Section 4.7", "SOPs DRI - Degraded Mode Page 23"],
+    metadata: {
+      "S1": {
+        "type": "safety_point",
+        "text_ar": "يجب على قائد القطار فوراً إغلاق الأبواب لتفادي سقوط الركاب على السكة غير المحمية، والتحقق البصري من النافذة للتأكد من خلو المسار والسكة المجاورة من أي ركاب ساقطين.",
+        "text_en": "The driver must immediately close the doors to prevent passengers falling onto the unprotected track, and visually check through the window to ensure no passengers have fallen."
+      },
+      "P1": {
+        "type": "point_of_attention",
+        "text_ar": "قم بإجراء مكالمة طوارئ عاجلة مع التحكم المركزي OCC واترك المكالمة مفتوحة ومستمرة، واطلب فوراً فصل التغذية الكهربائية للسكة المجاورة لضمان السلامة التامة.",
+        "text_en": "Make an urgent emergency call to OCC and keep it open. Immediately request traction power isolation for the adjacent track to ensure total safety."
+      }
+    },
+    flowchart: {
+      "start": {
+        "text_ar": "يقوم قائد القطار بالضغط بالخطأ على أزرار فتح الأبواب في الاتجاه المعاكس للرصيف (الاتجاه الخاطئ)",
+        "text_en": "Driver mistakenly presses the door open buttons on the non-platform side (wrong side).",
+        "next": "action_close_doors_instantly"
+      },
+      "action_close_doors_instantly": {
+        "type": "action",
+        "text_ar": "اضغط فوراً على أزرار غلق الأبواب لمنع خروج الركاب وإغلاق كافة الفتحات بالكامل وبأقصى سرعة",
+        "text_en": "Immediately press the door close buttons to prevent passenger exit and seal all openings as fast as possible.",
+        "linked_metadata": ["S1"],
+        "next": "action_emergency_call_occ"
+      },
+      "action_emergency_call_occ": {
+        "type": "action",
+        "text_ar": "أجر مكالمة طوارئ عاجلة مع OCC لإعلامهم بالموقف، واطلب منهم فصل طاقة السكة المجاورة فوراً واترك المكالمة مستمرة",
+        "text_en": "Initiate an urgent emergency call with OCC, request immediate power isolation for the adjacent track, and keep the call active.",
+        "linked_metadata": ["P1"],
+        "next": "action_inspect_track_window"
+      },
+      "action_inspect_track_window": {
+        "type": "action",
+        "text_ar": "تحقق بدقة عبر نوافذ الكابينة والمرايا الجانبية للتأكد من عدم سقوط أي شخص على القضبان المجاورة أو حدوث أي إصابات",
+        "text_en": "Inspect carefully through cab windows and side mirrors to verify no passenger has fallen onto the adjacent tracks.",
+        "next": "action_open_platform_side"
+      },
+      "action_open_platform_side": {
+        "type": "action",
+        "text_ar": "افتح الأبواب بالجانب الصحيح (ناحية رصيف المحطة) فوراً لتسهيل حركة الركاب الطبيعية وتهدئة الموقف",
+        "text_en": "Open doors on the correct side (platform side) immediately to facilitate passenger movement and calm the situation.",
+        "next": "action_report_terminal_log"
+      },
+      "action_report_terminal_log": {
+        "type": "action",
+        "text_ar": "اتبع تعليمات التحكم المركزي واستمر للمحطة الانتهائية لكتابة تقرير قائد القطار المفصل بالواقعة",
+        "text_en": "Follow Central Control instructions, proceed to the terminal, and write a detailed driver report of the incident.",
+        "next": "END"
+      },
+      "END": {
+        "type": "end",
+        "text_ar": "تم احتواء واقعة فتح الأبواب بالاتجاه الخاطئ وتأمين السكة والركاب وإعداد التقارير الفنية اللازمة",
+        "text_en": "Wrong-side door opening incident contained, tracks secured, and technical reports logged."
+      }
+    }
+  },
+  {
+    sop_code: "DRI-DEG-111",
+    category: "degraded",
+    title_en: "Train Evacuation in Station",
+    title_ar: "إخلاء القطار في المحطات",
+    reference_documents: ["Capital Train Operator Rulebook Section 4.8", "SOPs DRI - Degraded Mode Page 25"],
+    metadata: {
+      "S1": {
+        "type": "safety_point",
+        "text_ar": "يجب التحقق التام من إخلاء جميع صالونات عربات القطار بالكامل وخلوها من الركاب عبر كاميرات CCTV والفحص البصري الدقيق قبل غلق الأبواب ومغادرة القطار.",
+        "text_en": "Verify complete evacuation of all train saloons and ensure no passengers remain via CCTV and detailed visual sweep before closing doors and leaving."
+      },
+      "P1": {
+        "type": "point_of_attention",
+        "text_ar": "احصل على تصريح الإخلاء الرسمي من التحكم المركزي OCC وأعد التعليمات بدقة للتأكيد، محدداً رقم الخدمة، وموقع القطار واتجاهه وسبب الإخلاء الفني.",
+        "text_en": "Obtain formal evacuation permission from OCC and repeat instructions precisely, specifying service number, train location, direction, and technical reason."
+      }
+    },
+    flowchart: {
+      "start": {
+        "text_ar": "يتطلب الموقف إخلاء القطار بالكامل وهو متوقف بمحاذاة رصيف المحطة لسبب فني أو عارض طارئ",
+        "text_en": "Situation requires full train evacuation while stopped at a station platform due to a technical defect or emergency.",
+        "next": "action_get_evac_permit"
+      },
+      "action_get_evac_permit": {
+        "type": "action",
+        "text_ar": "اتصل بـ OCC للحصول على تصريح الإخلاء الرسمي وأعد قراءة تفاصيل التصريح بدقة لتأكيده بالكامل",
+        "text_en": "Contact OCC to obtain formal evacuation clearance and repeat back the permit details to confirm.",
+        "linked_metadata": ["P1"],
+        "next": "action_evac_announce"
+      },
+      "action_evac_announce": {
+        "type": "action",
+        "text_ar": "شغل الإذاعة الداخلية لإبلاغ الركاب بالتزام الهدوء والبدء بالإخلاء الفوري ومغادرة القطار، والتوجيه بعدم صعود ركاب جدد",
+        "text_en": "Activate the PA system to instruct passengers to stay calm, evacuate immediately, and prevent new passengers from boarding.",
+        "next": "action_open_platform_doors_evac"
+      },
+      "action_open_platform_doors_evac": {
+        "type": "action",
+        "text_ar": "افتح جميع الأبواب الجانبية للقطار ناحية الرصيف بالكامل، وغادر الكابينة للإشراف ومساعدة موظفي المحطة في عملية الإخلاء بأمان",
+        "text_en": "Open all platform-side train doors fully, and exit the cab to supervise and assist station staff in safe evacuation.",
+        "next": "action_verify_empty_evac"
+      },
+      "action_verify_empty_evac": {
+        "type": "action",
+        "text_ar": "توجه للكابينة الخلفية وتفقد صالونات الركاب بصرياً وعبر الـ CCTV للتأكد من خلو القطار تماماً من آخر راكب",
+        "text_en": "Walk to the rear cab, inspect all saloons visually and via CCTV to ensure the train is completely clear of passengers.",
+        "linked_metadata": ["S1"],
+        "next": "action_close_and_secure_evac"
+      },
+      "action_close_and_secure_evac": {
+        "type": "action",
+        "text_ar": "قم بغلق الأبواب بالكامل، وعد للكابينة الأمامية وأبلغ مركز التحكم OCC بانتهاء الإخلاء وجاهزية القطار للتحرك فارغاً أو التخزين",
+        "text_en": "Close all doors, return to the front cab, and notify OCC of completed evacuation and readiness to shunt or stable.",
+        "next": "action_write_evac_report"
+      },
+      "action_write_evac_report": {
+        "type": "action",
+        "text_ar": "قم بملء استمارة تقرير قائد القطار في المحطة لتسجيل تفاصيل عملية الإخلاء وتوقيتها وأسبابها",
+        "text_en": "Complete the train driver report form at the station to log evacuation details, timing, and causes.",
+        "next": "END"
+      },
+      "END": {
+        "type": "end",
+        "text_ar": "تم إخلاء القطار بالكامل وتأمين الرصيف وعربات القطار بنجاح وبأمان",
+        "text_en": "Train fully evacuated, platform and cars secured successfully and safely."
+      }
+    }
+  },
+  {
+    sop_code: "DRI-DEG-112",
+    category: "degraded",
+    title_en: "Sick or Injured Customers",
+    title_ar: "ركاب مرضى أو مصابون",
+    reference_documents: ["Capital Train Operator Rulebook Section 4.9", "SOPs DRI - Degraded Mode Page 27"],
+    metadata: {
+      "S1": {
+        "type": "safety_point",
+        "text_ar": "يجب على قائد القطار التنسيق مع ناظر المحطة (Station Master) لتقديم الإسعافات الأولية ونقل الراكب بأمان خارج القطار إلى الرصيف أو نقله بسيارة إسعاف.",
+        "text_en": "Coordinate with the Station Master to provide first aid and safely move the passenger out of the train to the platform or ambulance."
+      },
+      "P1": {
+        "type": "point_of_attention",
+        "text_ar": "يجب على قائد القطار تقييم حالة الراكب من خلال شاشات CCTV لصالون الركاب وإبلاغ مركز التحكم OCC فوراً مع طلب الدعم الطبي.",
+        "text_en": "The driver must assess the passenger's condition via saloon CCTV screens and report immediately to OCC, requesting medical assistance."
+      },
+      "P2": {
+        "type": "point_of_attention",
+        "text_ar": "إذا كان القطار بين محطتين، استمر بالقيادة للمحطة التالية وأوقف القطار هناك لتسهيل وصول المساعدات الطبية الطارئة.",
+        "text_en": "If the train is between stations, continue driving to the next station and stop there to facilitate emergency medical access."
+      }
+    },
+    flowchart: {
+      "start": {
+        "text_ar": "يتلقى قائد القطار بلاغاً عبر إنتركوم الركاب أو يلاحظ وجود راكب مريض أو مصاب بداخل عربات القطار",
+        "text_en": "Driver receives passenger intercom alert or notices a sick/injured passenger inside the train cars.",
+        "linked_metadata": ["P1"],
+        "next": "q_is_at_station_112"
+      },
+      "q_is_at_station_112": {
+        "type": "question",
+        "text_ar": "هل يتواجد القطار حالياً بداخل محطة (محاذاة الرصيف)؟",
+        "text_en": "Is the train currently inside a station (aligned at platform)?",
+        "yes": "action_station_assist",
+        "no": "action_proceed_next_station"
+      },
+      "action_proceed_next_station": {
+        "type": "action",
+        "text_ar": "استمر بالقيادة للمحطة التالية (يحظر الوقوف بالمسار المفتوح إلا لضرورة قصوى)، وأبلغ OCC للاستعداد بالمحطة",
+        "text_en": "Continue driving to the next station (stopping in open track is prohibited), and notify OCC to prepare assistance at the platform.",
+        "linked_metadata": ["P2"],
+        "next": "action_station_assist"
+      },
+      "action_station_assist": {
+        "type": "action",
+        "text_ar": "ابق القطار متوقفاً واطلب من ناظر المحطة التوجه فوراً لتقديم المساعدات الإسعافية الطبية الأولية ونقل الراكب للرصيف",
+        "text_en": "Keep the train stopped and request the Station Master to provide immediate first aid and assist the passenger to the platform.",
+        "linked_metadata": ["S1"],
+        "next": "action_report_occ_transfer"
+      },
+      "action_report_occ_transfer": {
+        "type": "action",
+        "text_ar": "أبلغ مركز التحكم OCC عندما يتم نقل الراكب بأمان خارج القطار، واستأذن لمتابعة المسير الطبيعي للرحلة",
+        "text_en": "Notify OCC once the passenger is safely transferred out of the train, and request permission to resume normal service.",
+        "next": "END"
+      },
+      "END": {
+        "type": "end",
+        "text_ar": "تم تقديم الرعاية اللازمة للمريض وتأمين سلامته ومتابعة تشغيل القطار بنجاح",
+        "text_en": "Medical assistance provided to passenger, safety secured, and train operation resumed successfully."
+      }
+    }
+  },
+  {
+    sop_code: "DRI-DEG-113",
+    category: "degraded",
+    title_en: "Abnormal Noise or Jerk",
+    title_ar: "صوت أو هزة غير طبيعية",
+    reference_documents: ["Capital Train Operator Rulebook Section 4.10", "SOPs DRI - Degraded Mode Page 29"],
+    metadata: {
+      "S1": {
+        "type": "safety_point",
+        "text_ar": "عند سماع صوت غريب أو هزة شديدة، يجب إيقاف القطار فوراً لتجنب مخاطر الخروج عن القضبان وتنسيق الفحص الفني الميداني للسكة والعجلات مع مركز التحكم.",
+        "text_en": "Upon hearing an abnormal sound or severe vibration, stop the train immediately to prevent derailment, and coordinate track/wheels technical inspection with CC."
+      },
+      "P1": {
+        "type": "point_of_attention",
+        "text_ar": "ينقسم الإجراء حسب موقع رصد الهزة: بين محطتين (يتطلب فحص جانبي السكة) أو داخل محطة (يتطلب فحص جانبي الرصيف).",
+        "text_en": "The procedure is divided based on detection location: between stations (requires trackside inspection) or in station (requires platform side inspection)."
+      }
+    },
+    flowchart: {
+      "start": {
+        "text_ar": "تم ملاحظة أو سماع صوت غريب أو الشعور بهزة قوية غير طبيعية بالقطار",
+        "text_en": "Abnormal sound is heard or strong unusual vibration/jerk is felt on the train.",
+        "linked_metadata": ["P1"],
+        "next": "q_location_type_113"
+      },
+      "q_location_type_113": {
+        "type": "question",
+        "text_ar": "هل تم رصد الصوت/الهزة 'بين محطتين' (على المسار المفتوح)؟",
+        "text_en": "Was the noise/jerk detected 'between stations' (on open track)?",
+        "yes": "action_stop_open_track",
+        "no": "action_keep_stopped_station"
+      },
+      "action_stop_open_track": {
+        "type": "action",
+        "text_ar": "بين محطتين (DRI-DEG-113-1): طبق فرامل كاملة فوراً، تفقد شاشات TCMS وأبلغ مركز التحكم بالموقف واحصل على تصريح فحص السكة ميكانيكياً",
+        "text_en": "Between stations (DRI-DEG-113-1): Apply full service brakes, check TCMS screens, notify OCC, and request track inspection clearance.",
+        "linked_metadata": ["S1"],
+        "next": "q_damage_found_track"
+      },
+      "q_damage_found_track": {
+        "type": "question",
+        "text_ar": "هل عثرت بالفحص العيني الميداني على أي أضرار بالقطار أو القضبان أو الشبكة الهوائية؟",
+        "text_en": "Did you find any damage to the train, tracks, or catenary during visual inspection?",
+        "yes": "action_report_damage_track",
+        "no": "action_resume_restricted_track"
+      },
+      "action_report_damage_track": {
+        "type": "action",
+        "text_ar": "أبلغ مركز التحكم فوراً بالتلفيات المرصودة، واتبع تعليمات الصيانة للإنقاذ أو المساعدة",
+        "text_en": "Report detected damage immediately to CC, and follow maintenance instructions for rescue/assistance.",
+        "next": "END"
+      },
+      "action_resume_restricted_track": {
+        "type": "action",
+        "text_ar": "أبلغ التحكم بسلامة الفحص، واستأنف القيادة بسرعة مقيدة مصرح بها ومراقبة حذرة للمحطة القادمة",
+        "text_en": "Report clear inspection to CC, and resume driving at authorized restricted speed with close monitoring to the next station.",
+        "next": "END"
+      },
+      "action_keep_stopped_station": {
+        "type": "action",
+        "text_ar": "في المحطة (DRI-DEG-113-2): ابق متوقفاً بالرصيف، تفقد شاشة TCMS وأبلغ OCC واطلب تصريح فحص جانبي القطار من الرصيف",
+        "text_en": "At station (DRI-DEG-113-2): Remain stopped, check TCMS, report to OCC, and request clearance to visually inspect train from platform.",
+        "next": "q_damage_found_station"
+      },
+      "q_damage_found_station": {
+        "type": "question",
+        "text_ar": "هل عثرت على أية أضرار بالقطار أو بمعدات الرصيف أو القضبان بمحاذاة الرصيف؟",
+        "text_en": "Did you find any damage to the train, platform equipment, or tracks at the station?",
+        "yes": "action_report_damage_track",
+        "no": "action_resume_restricted_track"
+      },
+      "END": {
+        "type": "end",
+        "text_ar": "تم إنهاء إجراءات فحص الهزة/الصوت وتأمين حركة القطار بنجاح وبأمان",
+        "text_en": "Noise/jerk inspection completed, train movement secured successfully and safely."
+      }
+    }
+  },
+  {
+    sop_code: "DRI-DEG-114",
+    category: "degraded",
+    title_en: "Obstruction on the Track (No Collision)",
+    title_ar: "عائق على السكة (لا يوجد تصادم)",
+    reference_documents: ["Capital Train Operator Rulebook Section 4.11", "SOPs DRI - Degraded Mode Page 33"],
+    metadata: {
+      "S1": {
+        "type": "safety_point",
+        "text_ar": "عند ملاحظة عائق على القضبان، يجب إيقاف القطار فوراً بالكامل قبل العائق بمسافة آمنة لتجنب الاصطدام، وإطلاق إذاعة طمأنة للركاب وإخطار مركز التحكم.",
+        "text_en": "Upon noticing a track obstruction, stop the train fully at a safe distance to prevent collision, issue passenger announcement, and notify CC."
+      },
+      "P1": {
+        "type": "point_of_attention",
+        "text_ar": "إذا كان العائق صغيراً ويمكن لقائد القطار إزالته بأمان، اطلب تصريح مغادرة الكابينة (SOP 007) لإزالته، وإلا انتظر دعم موظفي المحطة أو فريق الصيانة.",
+        "text_en": "If the obstruction is small and can be safely cleared by the driver, request cab exit permit (SOP 007) to remove it; otherwise await station/maintenance support."
+      }
+    },
+    flowchart: {
+      "start": {
+        "text_ar": "يلاحظ قائد القطار وجود عائق مادي أو جسم غريب على القضبان بالمسار المفتوح",
+        "text_en": "Driver notices a physical obstruction or foreign object on the tracks in open path.",
+        "next": "action_stop_before_obstruction"
+      },
+      "action_stop_before_obstruction": {
+        "type": "action",
+        "text_ar": "أوقف القطار فوراً بالكامل قبل العائق بمسافة آمنة، وقم بإجراء إذاعة عامة للركاب لإعلامهم بالموقف وطمأنتهم",
+        "text_en": "Stop the train fully at a safe distance before the obstruction, and broadcast a reassuring PA to passengers.",
+        "linked_metadata": ["S1"],
+        "next": "q_can_driver_clear"
+      },
+      "q_can_driver_clear": {
+        "type": "question",
+        "text_ar": "هل يمكن لقائد القطار التدخل لإزالة هذا العائق بأمان بنفسه؟",
+        "text_en": "Can the driver safely remove this obstruction by themselves?",
+        "yes": "action_clear_it_self",
+        "no": "action_wait_station_support"
+      },
+      "action_clear_it_self": {
+        "type": "action",
+        "text_ar": "اطلب تصريح مغادرة الكابينة من OCC، تفقد غلق الأجهزة وغادر لإزالة العائق، ثم عد وأبلغ OCC بالسلامة ومتابعة الحركة",
+        "text_en": "Request cab exit clearance from OCC, secure console, remove obstruction, return, notify OCC, and resume movement.",
+        "linked_metadata": ["P1"],
+        "next": "END"
+      },
+      "action_wait_station_support": {
+        "type": "action",
+        "text_ar": "أبلغ مركز التحكم OCC بطلب دعم فني أو موظفي المحطة، واستمر في إخطار الركاب والتنسيق حتى يتم إزالة العائق بفرق الدعم",
+        "text_en": "Request maintenance/station staff support from OCC, update passengers regularly, and await obstruction clearance by teams.",
+        "next": "END"
+      },
+      "END": {
+        "type": "end",
+        "text_ar": "تم تأمين السكة وإزالة العائق بالكامل ومتابعة الخدمة بنجاح وبأمان",
+        "text_en": "Track cleared, obstruction removed, and service resumed successfully and safely."
+      }
+    }
+  },
+  {
+    sop_code: "DRI-DEG-115",
+    category: "degraded",
+    title_en: "Strong Wind Management",
+    title_ar: "رياح قوية",
+    reference_documents: ["Capital Train Operator Rulebook Section 4.12", "SOPs DRI - Degraded Mode Page 35"],
+    metadata: {
+      "S1": {
+        "type": "safety_point",
+        "text_ar": "في حالات الرياح القوية أو العواصف، يجب التحويل الفوري لنظام القيادة اليدوية LMD لتطبيق السرعات المحددة بحذر واليقظة لأي عوائق متساقطة على القضبان.",
+        "text_en": "In case of strong winds or storms, switch immediately to manual driving (LMD), apply speed restrictions carefully, and watch for falling obstacles on tracks."
+      },
+      "P1": {
+        "type": "point_of_attention",
+        "text_ar": "إذا تسببت العاصفة والرياح في تدهور مدى الرؤية وصعوبة رؤية السكة بوضوح، يجب التحول فوراً لتطبيق سيناريو ضعف الرؤية (DRI-DEG-117).",
+        "text_en": "If strong winds cause severe visibility drop making track monitoring difficult, switch immediately to the Poor Visibility SOP (DRI-DEG-117)."
+      }
+    },
+    flowchart: {
+      "start": {
+        "text_ar": "يرصد قائد القطار هبوب رياح شديدة، أو يتلقى تحذيراً رسمياً من التحكم المركزي بوجود رياح عاصفة",
+        "text_en": "Driver detects severe strong winds, or receives formal storm/wind alerts from Central Control.",
+        "next": "action_switch_lmd_wind"
+      },
+      "action_switch_lmd_wind": {
+        "type": "action",
+        "text_ar": "قم بالتحويل فوراً لنظام القيادة اليدوية LMD للتحكم الكامل بالسرعة وفق ظروف الرياح والالتزام بتوجيهات OCC",
+        "text_en": "Switch immediately to LMD mode for full speed control based on wind conditions and OCC instructions.",
+        "linked_metadata": ["S1"],
+        "next": "q_is_visibility_good_wind"
+      },
+      "q_is_visibility_good_wind": {
+        "type": "question",
+        "text_ar": "هل مدى الرؤية واضح أمامك لرصد السكة ومؤشرات الإشارات بانتظام؟",
+        "text_en": "Is visibility sufficient to monitor tracks and signal indicators clearly?",
+        "yes": "action_drive_carefully_wind",
+        "no": "action_trigger_poor_visibility"
+      },
+      "action_trigger_poor_visibility": {
+        "type": "action",
+        "text_ar": "الرؤية متدهورة: انتقل فوراً لتطبيق بروتوكول وإجراءات عارض ضعف الرؤية (SOP DRI-DEG-117) لحماية القطار",
+        "text_en": "Poor visibility: Switch immediately to the Poor Visibility SOP (DRI-DEG-117) to secure the train.",
+        "linked_metadata": ["P1"],
+        "next": "END"
+      },
+      "action_drive_carefully_wind": {
+        "type": "action",
+        "text_ar": "قد بحذر منتبهاً للقضبان، وأصدر إذاعة طمأنة للركاب وإرشادهم بتوخي الحذر عند نزولهم بالمحطات، واتبع تعليمات OCC",
+        "text_en": "Drive with care, broadcast passenger reassurance and exit safety guidance, and follow OCC speed instructions.",
+        "next": "END"
+      },
+      "END": {
+        "type": "end",
+        "text_ar": "تمت معالجة عارض الرياح القوية وتوجيه القطار للمحطة بأمان",
+        "text_en": "Strong wind incident managed and train navigated safely to the station."
+      }
+    }
+  },
+  {
+    sop_code: "DRI-DEG-116",
+    category: "degraded",
+    title_en: "Flooding on the Mainline",
+    title_ar: "الفيضان على الخط الرئيسي",
+    reference_documents: ["Capital Train Operator Rulebook Section 4.13", "SOPs DRI - Degraded Mode Page 39"],
+    metadata: {
+      "S1": {
+        "type": "safety_point",
+        "text_ar": "إذا بلغ منسوب مياه الفيضان أو السيول مستوى رأس القضيب الحديدي (Rail Head Level)، يمنع تماماً عبور القطار ويجب إيقافه فوراً بالكامل وإبلاغ مركز التحكم.",
+        "text_en": "If flood water reaches the rail head level, passing is strictly prohibited. Stop the train fully and immediately, and notify CC."
+      },
+      "P1": {
+        "type": "point_of_attention",
+        "text_ar": "عند عبور مناطق بها مياه منخفضة (أقل من رأس القضيب)، قم بالتحويل لـ LMD والمسير بسرعة بطيئة ومقيدة جداً وإخطار OCC بالوضع بانتظام.",
+        "text_en": "When crossing low-water areas (below rail head), switch to LMD, drive at a very slow and restricted speed, and report regularly to CC."
+      }
+    },
+    flowchart: {
+      "start": {
+        "text_ar": "يلاحظ قائد القطار تجمع مياه كثيفة أو فيضان على القضبان بالخط الرئيسي",
+        "text_en": "Driver spots heavy water accumulation or flooding on the mainline tracks.",
+        "next": "action_slow_down_lmd_flood"
+      },
+      "action_slow_down_lmd_flood": {
+        "type": "action",
+        "text_ar": "قم بالتحويل فوراً لنظام القيادة اليدوية LMD لتقليل السرعة، وراقب بحذر تقدم منسوب المياه على السكة",
+        "text_en": "Immediately switch to LMD to reduce speed, and closely monitor water level on the tracks.",
+        "linked_metadata": ["P1"],
+        "next": "q_water_rail_head"
+      },
+      "q_water_rail_head": {
+        "type": "question",
+        "text_ar": "هل وصل منسوب المياه إلى مستوى رأس القضيب الحديدي (Rail Head)؟",
+        "text_en": "Has the water level reached the rail head?",
+        "yes": "action_stop_flood_hazard",
+        "no": "action_cross_restricted_speed"
+      },
+      "action_stop_flood_hazard": {
+        "type": "action",
+        "text_ar": "أوقف القطار فوراً بالكامل لتفادي خروج عن القضبان، وأبلغ مركز التحكم بالخطر، واتبع تعليمات الإخلاء أو الإنقاذ",
+        "text_en": "Stop the train fully and immediately to prevent derailment, report danger to CC, and await evacuation/rescue instructions.",
+        "linked_metadata": ["S1"],
+        "next": "END"
+      },
+      "action_cross_restricted_speed": {
+        "type": "action",
+        "text_ar": "قد بسرعة بطيئة ومقيدة جداً، مع إبلاغ OCC بانتظام بمدى ملاءمة الوضع أثناء عبور المنطقة المتضررة حتى الخروج منها",
+        "text_en": "Drive at a very slow restricted speed, reporting regularly to OCC on track suitability until safely exiting the flooded zone.",
+        "next": "END"
+      },
+      "END": {
+        "type": "end",
+        "text_ar": "تمت معالجة عارض تجمع المياه وتأمين عبور أو وقوف القطار بنجاح",
+        "text_en": "Water accumulation managed and train crossing or stop secured successfully."
+      }
+    }
+  },
+  {
+    sop_code: "DRI-DEG-117",
+    category: "degraded",
+    title_en: "Poor Visibility Management",
+    title_ar: "ضعف الرؤية",
+    reference_documents: ["Capital Train Operator Rulebook Section 4.14", "SOPs DRI - Degraded Mode Page 41"],
+    metadata: {
+      "S1": {
+        "type": "safety_point",
+        "text_ar": "في ظروف الضباب الكثيف أو العواصف الرملية، يجب التحكم الصارم في سرعة القطار والقيادة بالسرعات المقيدة بناء على مدى الرؤية المتاح وتشغيل كشافات الإنارة الكبيرة.",
+        "text_en": "In thick fog or sandstorms, strictly control train speed, drive within restricted limits based on available visibility, and turn on high-beam headlights."
+      },
+      "P1": {
+        "type": "point_of_attention",
+        "text_ar": "يجب على قائد القطار إطلاق سرينة التحذير الصوتية بانتظام وبخاصة قبل دخول المحطات لتنبيه أي عاملين أو ركاب على الرصيف.",
+        "text_en": "The driver must sound the warning horn regularly, especially before entering stations, to alert any personnel or platform passengers."
+      }
+    },
+    flowchart: {
+      "start": {
+        "text_ar": "تتدهور حالة الطقس (ضباب/غبار) وتصبح الرؤية غير واضحة أمام قائد القطار، أو يبلغه OCC بوجود ضعف رؤية بالمسار",
+        "text_en": "Weather degrades (fog/dust) making forward visibility poor, or OCC alerts driver of poor visibility on path.",
+        "next": "action_activate_high_beams"
+      },
+      "action_activate_high_beams": {
+        "type": "action",
+        "text_ar": "أبلغ OCC فوراً بالوضع، وقم بتشغيل كشافات الإنارة الأمامية الكبيرة لزيادة مدى الرؤية والتحكم في السرعة",
+        "text_en": "Immediately report visibility status to OCC, activate high-beam headlights to enhance visibility, and restrict speed.",
+        "linked_metadata": ["S1"],
+        "next": "action_use_warning_horn"
+      },
+      "action_use_warning_horn": {
+        "type": "action",
+        "text_ar": "أطلق سرينة التحذير بانتظام وقبل دخول المحطات، وقم بعمل إذاعة عامة لإعلام الركاب بظروف الرحلة والتزام الهدوء",
+        "text_en": "Sound the warning horn regularly and before stations, and broadcast a PA to reassure passengers and explain conditions.",
+        "linked_metadata": ["P1"],
+        "next": "action_monitor_and_report_occ"
+      },
+      "action_monitor_and_report_occ": {
+        "type": "action",
+        "text_ar": "استمر بمسير حذر بالسرعات المحددة، وأبلغ مركز التحكم فوراً عن رصد أي وضع غير طبيعي أو عوائق على السكة",
+        "text_en": "Continue careful travel within restricted speed, and report immediately to OCC if any anomaly or obstruction is spotted.",
+        "next": "END"
+      },
+      "END": {
+        "type": "end",
+        "text_ar": "تم تجاوز منطقة ضعف الرؤية وتسيير القطار للمحطات بأمان تام",
+        "text_en": "Poor visibility zone cleared and train navigated to stations with total safety."
+      }
+    }
+  },
+  {
+    sop_code: "DRI-DEG-118",
+    category: "degraded",
+    title_en: "Train Reset on Mainline",
+    title_ar: "إعادة تشغيل القطار على الخط الرئيسي",
+    reference_documents: ["Capital Train Operator Rulebook Section 4.15", "SOPs DRI - Degraded Mode Page 45"],
+    metadata: {
+      "S1": {
+        "type": "safety_point",
+        "text_ar": "يحظر تماماً محاولة عمل إعادة تشغيل (Reset) للكابينة أثناء حركة القطار. يجب وقوف القطار بالكامل وتطبيق رباط الانتظار والتحقق الفني عبر شاشة TCMS.",
+        "text_en": "It is strictly forbidden to attempt a cab reset while the train is moving. The train must be completely stopped with holding brakes applied, and verified via TCMS."
+      },
+      "P1": {
+        "type": "point_of_attention",
+        "text_ar": "عملية إعادة التشغيل تتطلب الحصول على تصريح مسبق ومحدد من التحكم المركزي OCC وإصدار إذاعة عامة للركاب تفادياً للفزع نتيجة انقطاع التكييف والإنارة المؤقت.",
+        "text_en": "The reset process requires prior explicit permit from OCC and a passenger PA to prevent panic due to temporary HVAC and light cutoff."
+      }
+    },
+    flowchart: {
+      "start": {
+        "text_ar": "يواجه القطار عطلاً برمجياً أو فنياً مستعصياً بالأنظمة، ويتطلب حل العارض عمل إعادة تشغيل كاملة للكابينة بالخط الرئيسي",
+        "text_en": "Train experiences persistent software or system faults, requiring a complete cab reset on the mainline to clear the defect.",
+        "next": "action_stop_and_holding_brake"
+      },
+      "action_stop_and_holding_brake": {
+        "type": "action",
+        "text_ar": "أوقف القطار بالكامل، طبق رباط الانتظار وتأكد من ربطه في جميع عربات القطار عبر شاشة TCMS",
+        "text_en": "Stop the train completely, apply the holding brake and verify its application across all cars via TCMS.",
+        "linked_metadata": ["S1"],
+        "next": "action_request_reset_permit"
+      },
+      "action_request_reset_permit": {
+        "type": "action",
+        "text_ar": "اتصل بـ OCC واطلب تصريح إعادة التشغيل موضحاً السبب، وأطلق إذاعة عامة لطمأنة الركاب والتزام الهدوء",
+        "text_en": "Contact OCC to request reset clearance explaining the reason, and broadcast a passenger PA to maintain calm.",
+        "linked_metadata": ["P1"],
+        "next": "action_perform_reset_steps"
+      },
+      "action_perform_reset_steps": {
+        "type": "action",
+        "text_ar": "ضع يد التحكم بالحياد، ومفتاح الاتجاه على صفر، أدر المفتاح الرئيسي لوضع OFF وانتظر 10 ثوان قبل تشغيله مجدداً ON",
+        "text_en": "Put controller to neutral, direction key to zero, turn master key to OFF and wait 10 seconds before turning to ON.",
+        "next": "action_verify_tcms_screens"
+      },
+      "action_verify_tcms_screens": {
+        "type": "action",
+        "text_ar": "أعد تحديد اتجاه المسير للأمام، طبق أقصى وضع لفرامل الخدمة، تأكد من إقلاع الشاشات وخلت من العوارض وأبلغ OCC بالنتيجة",
+        "text_en": "Set direction forward, apply full service brakes, verify screens booted successfully and cleared of faults, and report results to OCC.",
+        "next": "END"
+      },
+      "END": {
+        "type": "end",
+        "text_ar": "تم عمل إعادة تشغيل للكابينة بنجاح وزال العارض واستؤنفت الخدمة بأمان",
+        "text_en": "Cab reset performed successfully, fault cleared, and service resumed safely."
       }
     }
   },
 
-  // --- EMERGENCY SOPS (1 SOP from previous versions) ---
-  {
-    sop_code: "DRI-EME-201",
-    category: "emergency",
-    title_en: "Fire or Smoke on Board Train",
-    title_ar: "حريق أو انبعاث دخان على متن القطار",
-    reference_documents: ["LRT Disaster Management Code", "LRT Fire Life Safety Instructions"],
-    metadata: {
-      "S1": {
-        "type": "safety_point",
-        "text_ar": "يمنع تماماً إيقاف القطار داخل النفق إذا كان الحريق مشتعلاً في عربات القطار؛ بل يجب الاستمرار في القيادة حتى المحطة التالية لضمان التهوية وتسهيل عملية الإخلاء.",
-        "text_en": "It is absolutely forbidden to stop the train inside a tunnel if a fire is active; you MUST continue driving to the next station to ensure ventilation and facilitate evacuation."
-      },
-      "S2": {
-        "type": "safety_point",
-        "text_ar": "في حالة التوقف الاضطراري بالمسار المفتوح، يجب تفعيل مروحة طرد الدخان بالاتجاه المعاكس لاتجاه الرياح لإبعاد الدخان عن الركاب أثناء الإخلاء.",
-        "text_en": "In case of emergency stop on an open track, activate the smoke extraction fans in the direction opposite to wind flow to keep smoke away from passengers."
-      },
-      "P1": {
-        "type": "point_of_attention",
-        "text_ar": "قم بتهدئة الركاب عبر نظام الإذاعة الداخلية (PA) لمنع التدافع والهلع.",
-        "text_en": "Reassure passengers via the Passenger Announcement (PA) system to prevent stampede and panic."
-      }
-    },
-    flowchart: {
-      "start": {
-        "text_ar": "انطلاق إنذار الحريق التلقائي بالقطار أو إبلاغ قائد القطار من الركاب بوجود دخان أو نار.",
-        "text_en": "Automatic fire alarm triggers in the cab, or passenger interphone reports smoke or active fire.",
-        "linked_metadata": ["P1"],
-        "next": "q1"
-      },
-      "q1": {
-        "type": "question",
-        "text_ar": "هل يتواجد القطار حالياً داخل نفق (Tunnel Section)؟",
-        "text_en": "Is the train currently inside a tunnel section?",
-        "yes": "action_drive_next_station",
-        "no": "action_emergency_stop_track"
-      },
-      "action_drive_next_station": {
-        "type": "action",
-        "text_ar": "استمر بالقيادة فوراً إلى المحطة التالية. أبلغ مركز التحكم والخدمات الطارئة للتأهب في تلك المحطة.",
-        "text_en": "Continue driving immediately to the next station. Notify CC and Emergency Services to stand by at that station.",
-        "linked_metadata": ["S1"],
-        "next": "action_station_evacuate"
-      },
-      "action_emergency_stop_track": {
-        "type": "action",
-        "text_ar": "قم بتطبيق الفرملة الكاملة حتى يتوقف القطار تماماً بالمنطقة المفتوحة. أبلغ مركز التحكم بالموقع الدقيق.",
-        "text_en": "Apply full brakes until the train stops completely on the open track. Inform CC of the exact location.",
-        "next": "action_track_evacuate"
-      },
-      "action_station_evacuate": {
-        "type": "action",
-        "text_ar": "عند الوصول للمحطة، افتح جميع الأبواب فوراً، واقطع التيار الكهربائي عن القطار، وابدأ بإخلاء المحطة والقطار بمساعدة الموظفين.",
-        "text_en": "Upon arrival at the station, open all doors immediately, drop main traction power, and initiate passenger evacuation with station staff.",
-        "next": "END"
-      },
-      "action_track_evacuate": {
-        "type": "action",
-        "text_ar": "افتح أبواب الطوارئ بالقطار، وأشرف على نزول الركاب للممشى المخصص بجانب السكة (Walkway) بعيداً عن كابلات الطاقة.",
-        "text_en": "Open emergency doors, and supervise passenger descent onto the dedicated evacuation walkway, away from live traction power rails.",
-        "linked_metadata": ["S2"],
-        "next": "END"
-      },
-      "END": {
-        "type": "end",
-        "text_ar": "تم إخلاء الركاب وتأمين القطار بانتظار فرق الإطفاء والإنقاذ",
-        "text_en": "Passengers evacuated and train secured. Awaiting civil defense and rescue squads."
-      }
-    }
-  },
-  // --- TROUBLESHOOTING / FAULT SOPS (3 SOPs for Troubleshooting) ---
+  // --- EMERGENCY SOPS (Bilingual Emergency SOPs matching normal formatting) ---
+  ...EMERGENCY_SOPS,
+
+  // --- TROUBLESHOOTING SOPS (Bilingual Troubleshooting matching normal formatting) ---
   {
     sop_code: "DRI-FLT-001",
     category: "troubleshooting",
@@ -1177,35 +1969,36 @@ export const SOPS_DATA: SOP[] = [
       "start": {
         "text_ar": "تلقي بلاغ عن توقف التكييف أو رصد انخفاض التبريد في الصالون أو الكابينة",
         "text_en": "Report of HVAC failure or cooling drop in saloon or cab.",
-        "next": "q1"
+        "next": "q_is_cab_affected"
       },
-      "q1": {
+      "q_is_cab_affected": {
         "type": "question",
         "text_ar": "هل العطل يمنع التكييف في كابينة القيادة النشطة للقطار؟",
         "text_en": "Does the failure affect the active driving cab's HVAC?",
-        "yes": "action_cab_hvac",
-        "no": "q_salon_temp"
+        "yes": "action_cab_hvac_bypass",
+        "no": "q_salon_temp_limit"
       },
-      "action_cab_hvac": {
+      "action_cab_hvac_bypass": {
         "type": "action",
         "text_ar": "شغل مروحة التهوية البديلة الاحتياطية وافتح نافذة الكابينة الجانبية قليلاً لتمرير الهواء والحفاظ على تبريد مناسب",
         "text_en": "Turn on the auxiliary ventilation fan and slightly open the cab side window to maintain airflow.",
-        "next": "q_salon_temp"
+        "linked_metadata": ["S2"],
+        "next": "q_salon_temp_limit"
       },
-      "q_salon_temp": {
+      "q_salon_temp_limit": {
         "type": "question",
         "text_ar": "هل درجة الحرارة داخل صالون الركاب لا تزال مقبولة (أقل من 32 درجة مئوية)؟",
         "text_en": "Is the temperature inside the passenger saloon still acceptable (below 32°C)?",
-        "yes": "action_monitor_next",
-        "no": "action_report_occ_evac"
+        "yes": "action_monitor_next_station",
+        "no": "action_report_occ_evac_hvac"
       },
-      "action_monitor_next": {
+      "action_monitor_next_station": {
         "type": "action",
         "text_ar": "استمر في القيادة بحذر حتى المحطة التالية وراقب قراءة الحرارة على شاشات TCMS وأبلغ الصيانة للاستعداد بالمحطة النهائية",
         "text_en": "Continue driving with caution to the next station, monitor TCMS temp readings, and alert depot maintenance.",
         "next": "END"
       },
-      "action_report_occ_evac": {
+      "action_report_occ_evac_hvac": {
         "type": "action",
         "text_ar": "أبلغ مركز التحكم OCC فوراً بالموقف واطلب تبريد بديل وتصريح بإخلاء القطار في المحطة التالية لتجنب اختناق الركاب وتدافعهم",
         "text_en": "Immediately report to CC, request alternative ventilation and permit to evacuate at the next station to prevent passenger suffocation.",
@@ -1223,7 +2016,7 @@ export const SOPS_DATA: SOP[] = [
     sop_code: "DRI-FLT-002",
     category: "troubleshooting",
     title_en: "Pantograph Raising Failure",
-    title_ar: "عطل تفعيل البانتوغراف (رفع الذراع)",
+    title_ar: "عطل تفعيل البانتوغراف",
     reference_documents: ["Capital Train Operator Booklet Section 4.2", "Panto Control Manual"],
     metadata: {
       "S1": {
@@ -1241,49 +2034,49 @@ export const SOPS_DATA: SOP[] = [
       "start": {
         "text_ar": "فشل تفعيل ورفع البانتوغراف بعد تشغيل المفتاح الرئيسي وتأكيد تفعيل الكابينة",
         "text_en": "Pantograph failed to raise after main switch activation and cab activation.",
-        "next": "q_air"
+        "next": "q_is_air_pressure_ok"
       },
-      "q_air": {
+      "q_is_air_pressure_ok": {
         "type": "question",
         "text_ar": "هل ضغط هواء التحكم الرئيسي للقطار كافٍ لرفع البانتوغراف (لا يقل عن 5.5 بار)؟",
         "text_en": "Is the main control air pressure sufficient (not below 5.5 bar)?",
-        "yes": "q_switch",
-        "no": "action_aux_compressor"
+        "yes": "q_panto_key_normal",
+        "no": "action_run_aux_compressor"
       },
-      "action_aux_compressor": {
+      "action_run_aux_compressor": {
         "type": "action",
         "text_ar": "قم بتشغيل الضاغط المساعد (Auxiliary Compressor) يدوياً لشحن خزان هواء البانتوغراف حتى يصل الضغط للحد المطلوب",
         "text_en": "Manually activate the auxiliary compressor to charge the panto air reservoir to the required pressure.",
-        "next": "q_switch"
+        "next": "q_panto_key_normal"
       },
-      "q_switch": {
+      "q_panto_key_normal": {
         "type": "question",
         "text_ar": "هل مفتاح الأمان للتحكم بالبانتوغراف (Panto Bypass Key) في الوضع الطبيعي المعتاد؟",
         "text_en": "Is the panto bypass key/switch in the normal default position?",
-        "yes": "action_toggle",
-        "no": "action_set_bypass"
+        "yes": "action_toggle_panto",
+        "no": "action_enable_panto_bypass"
       },
-      "action_set_bypass": {
+      "action_enable_panto_bypass": {
         "type": "action",
         "text_ar": "قم بوضع مفتاح الأمان في وضع التجاوز (Bypass) بعد التنسيق التام وتلقي تعليمات واضحة من OCC",
         "text_en": "Put the safety key into Bypass position after coordinating and receiving instructions from CC.",
         "linked_metadata": ["S2"],
-        "next": "action_toggle"
+        "next": "action_toggle_panto"
       },
-      "action_toggle": {
+      "action_toggle_panto": {
         "type": "action",
         "text_ar": "قم بإعادة تدوير مفتاح تفعيل البانتوغراف مرتين لتنشيط صمامات الهواء الكهرومغناطيسية ورفع الذراع",
         "text_en": "Cycle the panto activation switch twice to trigger electromagnetic air valves and lift the pantograph.",
-        "next": "q_raised"
+        "next": "q_is_panto_raised"
       },
-      "q_raised": {
+      "q_is_panto_raised": {
         "type": "question",
         "text_ar": "هل ارتفع البانتوغراف وتأكدت من وصول التيار الكهربائي العالي (1500VDC) على شاشة TCMS؟",
         "text_en": "Did the panto raise and high voltage (1500VDC) register on the TCMS screen?",
         "yes": "END",
-        "no": "action_request_rescue"
+        "no": "action_panto_rescue"
       },
-      "action_request_rescue": {
+      "action_panto_rescue": {
         "type": "action",
         "text_ar": "أوقف جميع المحاولات فوراً، أبلغ OCC بوجود عطل ميكانيكي صلب، واطلب الدعم الفني الفوري أو قطار إغاثة للجر",
         "text_en": "Stop all attempts, notify CC of hard mechanical failure, and request immediate technical support or a rescue train.",
@@ -1323,7 +2116,7 @@ export const SOPS_DATA: SOP[] = [
       },
       "q_obstr": {
         "type": "question",
-        "text_ar": "هل يوجد عائق مادي أو جسم غريب واضح يمنع قفل الباب؟",
+        "text_ar": "هل يوجد عائق مادي أو جسم غريب واضح يمنع قفل الباب? (Obstruction)",
         "text_en": "Is there a physical obstruction or foreign body preventing the door from closing?",
         "yes": "action_remove_obstr",
         "no": "action_isolate_door"

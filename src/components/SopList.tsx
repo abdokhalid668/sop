@@ -45,37 +45,37 @@ export default function SopList({
   };
 
   return (
-    <div className="flex-1 overflow-y-auto px-6 py-6 flex flex-col justify-start bg-[#f8fafc]" dir="rtl">
+    <div className="flex-1 overflow-y-auto px-4 md:px-6 py-4 md:py-6 flex flex-col justify-start bg-[#f8fafc]" dir="rtl">
       
       {/* Arabic Header matching screenshot */}
-      <div className="max-w-4xl mx-auto w-full mb-6">
+      <div className="max-w-4xl mx-auto w-full mb-4 sm:mb-6">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="flex items-center space-x-3 space-x-reverse">
+          <div className="flex items-center space-x-2.5 md:space-x-3 space-x-reverse">
             {/* Back button with right arrow */}
             <button
               onClick={onBack}
-              className="w-10 h-10 flex items-center justify-center bg-white border border-slate-150 rounded-xl shadow-[0_2px_8px_rgba(0,0,0,0.02)] hover:bg-slate-50 text-slate-800 transition-colors focus:outline-none cursor-pointer"
+              className="w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center bg-white border border-slate-150 rounded-lg sm:rounded-xl shadow-[0_2px_8px_rgba(0,0,0,0.02)] hover:bg-slate-50 text-slate-800 transition-colors focus:outline-none cursor-pointer"
               id="btn-back-to-home"
             >
-              <ArrowRight className="w-5 h-5 text-slate-700" />
+              <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 text-slate-700" />
             </button>
             
             <div className="text-right">
-              <h1 className="text-2xl font-black text-slate-900 font-arabic leading-none mb-1">
+              <h1 className="text-lg sm:text-xl md:text-2xl font-black text-slate-900 font-arabic leading-none mb-1">
                 {getCategoryArabicTitle()}
               </h1>
-              <p className="text-xs text-slate-400 font-arabic font-bold">
+              <p className="text-[10px] sm:text-xs text-slate-400 font-arabic font-bold">
                 يعرض {filteredSops.length} من الإجراءات التشغيلية المعتمدة
               </p>
             </div>
           </div>
 
           {/* Polished Mode Selector Strip at the Top */}
-          <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200/60 self-stretch md:self-auto overflow-x-auto scrollbar-none">
+          <div className="flex bg-slate-100 p-0.5 sm:p-1 rounded-lg sm:rounded-xl border border-slate-200/60 self-stretch md:self-auto overflow-x-auto scrollbar-none">
             <div className="flex space-x-1 space-x-reverse w-full md:w-auto">
               <button
                 onClick={() => setActiveCategory('normal')}
-                className={`flex-1 md:flex-initial px-4 py-2 rounded-lg text-xs font-arabic font-black transition-all duration-200 cursor-pointer whitespace-nowrap focus:outline-none ${
+                className={`flex-1 md:flex-initial px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-md sm:rounded-lg text-[10px] sm:text-xs font-arabic font-black transition-all duration-200 cursor-pointer whitespace-nowrap focus:outline-none ${
                   activeCategory === 'normal'
                     ? 'bg-emerald-600 text-white shadow-[0_2px_6px_rgba(5,150,105,0.2)]'
                     : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
@@ -85,7 +85,7 @@ export default function SopList({
               </button>
               <button
                 onClick={() => setActiveCategory('degraded')}
-                className={`flex-1 md:flex-initial px-4 py-2 rounded-lg text-xs font-arabic font-black transition-all duration-200 cursor-pointer whitespace-nowrap focus:outline-none ${
+                className={`flex-1 md:flex-initial px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-md sm:rounded-lg text-[10px] sm:text-xs font-arabic font-black transition-all duration-200 cursor-pointer whitespace-nowrap focus:outline-none ${
                   activeCategory === 'degraded'
                     ? 'bg-amber-500 text-white shadow-[0_2px_6px_rgba(245,158,11,0.2)]'
                     : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
@@ -95,7 +95,7 @@ export default function SopList({
               </button>
               <button
                 onClick={() => setActiveCategory('emergency')}
-                className={`flex-1 md:flex-initial px-4 py-2 rounded-lg text-xs font-arabic font-black transition-all duration-200 cursor-pointer whitespace-nowrap focus:outline-none ${
+                className={`flex-1 md:flex-initial px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-md sm:rounded-lg text-[10px] sm:text-xs font-arabic font-black transition-all duration-200 cursor-pointer whitespace-nowrap focus:outline-none ${
                   activeCategory === 'emergency'
                     ? 'bg-red-600 text-white shadow-[0_2px_6px_rgba(220,38,38,0.2)]'
                     : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
@@ -105,7 +105,7 @@ export default function SopList({
               </button>
               <button
                 onClick={() => setActiveCategory('troubleshooting')}
-                className={`flex-1 md:flex-initial px-4 py-2 rounded-lg text-xs font-arabic font-black transition-all duration-200 cursor-pointer whitespace-nowrap focus:outline-none ${
+                className={`flex-1 md:flex-initial px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-md sm:rounded-lg text-[10px] sm:text-xs font-arabic font-black transition-all duration-200 cursor-pointer whitespace-nowrap focus:outline-none ${
                   activeCategory === 'troubleshooting'
                     ? 'bg-sky-600 text-white shadow-[0_2px_6px_rgba(14,165,233,0.2)]'
                     : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'

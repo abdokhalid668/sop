@@ -1,24 +1,136 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { 
   ArrowLeft, Home, RotateCcw, Check, ChevronRight, HelpCircle, 
-  CornerDownRight, AlertTriangle, PenTool, CheckCircle, ArrowRight, Play, Info, X
+  CornerDownRight, AlertTriangle, PenTool, CheckCircle, ArrowRight, Info, X
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { SOP, FlowchartNode, DriverShiftLog } from '../types';
 
 interface SopWizardProps {
+  key?: React.Key;
   sop: SOP;
   onGoHome: () => void;
   onBackToIndex: () => void;
   onLogCompleted: (log: Omit<DriverShiftLog, 'id' | 'timestamp'> & { notes?: string }) => void;
+  onNavigateSop?: (sopCode: string) => void;
+  onSessionUpdate?: (session: { sopCode: string; currentNodeId: string; history: string[] } | null) => void;
+  initialNodeId?: string;
+  initialHistory?: string[];
 }
 
-export default function SopWizard({ sop, onGoHome, onBackToIndex, onLogCompleted }: SopWizardProps) {
+export default function SopWizard({ 
+  sop, 
+  onGoHome, 
+  onBackToIndex, 
+  onLogCompleted, 
+  onNavigateSop,
+  onSessionUpdate,
+  initialNodeId = 'start',
+  initialHistory = []
+}: SopWizardProps) {
+  // Dynamically calculate initial state for sub-step routing
+  const getInitialDecisionsAndHistory = (startNode: string, targetNode: string): { decisions: Record<string, 'yes' | 'no'>; history: string[] } => {
+    const decs: Record<string, 'yes' | 'no'> = {};
+    const hist: string[] = [];
+    
+    interface PathState {
+      nodeId: string;
+      path: string[];
+      decisions: Record<string, 'yes' | 'no'>;
+    }
+    
+    const queue: PathState[] = [{ nodeId: startNode, path: [], decisions: {} }];
+    const visited = new Set<string>();
+    
+    while (queue.length > 0) {
+      const current = queue.shift()!;
+      if (current.nodeId === targetNode) {
+        return { decisions: current.decisions, history: current.path };
+      }
+      
+      if (visited.has(current.nodeId)) continue;
+      visited.add(current.nodeId);
+      
+      const node = sop.flowchart[current.nodeId];
+      if (!node) continue;
+      
+      if (node.type === 'question') {
+        if (node.yes) {
+          queue.push({
+            nodeId: node.yes,
+            path: [...current.path, current.nodeId],
+            decisions: { ...current.decisions, [current.nodeId]: 'yes' }
+          });
+        }
+        if (node.no) {
+          queue.push({
+            nodeId: node.no,
+            path: [...current.path, current.nodeId],
+            decisions: { ...current.decisions, [current.nodeId]: 'no' }
+          });
+        }
+      } else {
+        if (node.next) {
+          queue.push({
+            nodeId: node.next,
+            path: [...current.path, current.nodeId],
+            decisions: { ...current.decisions }
+          });
+        }
+      }
+    }
+    
+    return { decisions: {}, history: [] };
+  };
+
+  // Compute this once during render initialization if needed
+  const preCalculated = useMemo(() => {
+    if (initialNodeId && initialNodeId !== 'start') {
+      return getInitialDecisionsAndHistory('start', initialNodeId);
+    }
+    return { decisions: {}, history: initialHistory };
+  }, [sop, initialNodeId, initialHistory]);
+
   // Wizard state
-  const [currentNodeId, setCurrentNodeId] = useState<string>('start');
-  const [history, setHistory] = useState<string[]>([]);
+  const [currentNodeId, setCurrentNodeId] = useState<string>(initialNodeId);
+  const [history, setHistory] = useState<string[]>(() => {
+    return preCalculated.history.length > 0 ? preCalculated.history : initialHistory;
+  });
   const [isLogDrawerOpen, setIsLogDrawerOpen] = useState(false);
   const [sessionNotes, setSessionNotes] = useState('');
+  
+  // Track interactive decisions & checklist completions for the full/quick view
+  const [decisions, setDecisions] = useState<Record<string, 'yes' | 'no'>>(() => {
+    return preCalculated.decisions;
+  });
+
+  const [completedSteps, setCompletedSteps] = useState<Record<string, boolean>>(() => {
+    const comps: Record<string, boolean> = {};
+    const path = preCalculated.history.length > 0 ? preCalculated.history : initialHistory;
+    path.forEach(hId => {
+      const node = sop.flowchart[hId];
+      if (node && node.type !== 'question') {
+        comps[hId] = true;
+      }
+    });
+    return comps;
+  });
+
+  // Track onSessionUpdate ref to prevent infinite loops in useEffect
+  const onSessionUpdateRef = useRef(onSessionUpdate);
+  useEffect(() => {
+    onSessionUpdateRef.current = onSessionUpdate;
+  }, [onSessionUpdate]);
+
+  useEffect(() => {
+    const session = {
+      sopCode: sop.sop_code,
+      currentNodeId: currentNodeId,
+      history: history
+    };
+    localStorage.setItem('lrt_active_sop_session', JSON.stringify(session));
+    onSessionUpdateRef.current?.(session);
+  }, [sop.sop_code, currentNodeId, history]);
 
   // Selected S1 / P1 key to show in full detail modal popup
   const [selectedMetadataKey, setSelectedMetadataKey] = useState<string | null>(null);
@@ -31,6 +143,156 @@ export default function SopWizard({ sop, onGoHome, onBackToIndex, onLogCompleted
       ...prev,
       [key]: !prev[key]
     }));
+  };
+
+  const splitSopCode = (code: string) => {
+    const cleanCode = code.replace(/SOP\s+/i, '').trim().toUpperCase();
+    const parts = cleanCode.split('-');
+    if (parts.length >= 3) {
+      const part1 = parts.slice(0, 2).join('-');
+      const part2 = parts.slice(2).join('-');
+      return { part1, part2 };
+    }
+    return { part1: cleanCode, part2: '' };
+  };
+
+  const renderTextWithSopLinks = (text: string) => {
+    if (!text) return null;
+    
+    const regex = /\s*\(?(?:SOP\s+)?(DRI-[A-Z]+-\d+(?:-\d+)?)\)?\s*/gi;
+    const segments = text.split(regex);
+    
+    if (segments.length === 1) {
+      return <span>{text}</span>;
+    }
+    
+    return (
+      <span className="leading-relaxed">
+        {segments.map((seg, idx) => {
+          if (idx % 2 === 1) {
+            // This is an SOP code link!
+            const code = seg.toUpperCase();
+            const { part1, part2 } = splitSopCode(code);
+            return (
+              <span key={idx} className="inline-block align-middle mx-1.5 my-0.5 text-center select-none" dir="ltr">
+                <svg 
+                  width="100" 
+                  height="65" 
+                  viewBox="0 0 110 70" 
+                  className="inline-block align-middle filter drop-shadow-sm cursor-pointer hover:scale-105 active:scale-95 hover:brightness-95 transition-all" 
+                  onClick={(e) => { 
+                    e.stopPropagation(); 
+                    onNavigateSop?.(code); 
+                  }}
+                >
+                  {/* Grey arrow pointing down */}
+                  <g transform="translate(55, 10)">
+                    <line x1="0" y1="-8" x2="0" y2="4" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" />
+                    <polygon points="-4,2 4,2 0,8" fill="#94a3b8" />
+                  </g>
+                  
+                  {/* Pentagonal box (starts at y=20, width=100, height=45) */}
+                  <polygon points="5,20 105,20 105,50 55,65 5,50" fill="#f8fafc" stroke="#94a3b8" strokeWidth="1.5" strokeLinejoin="miter" />
+                  
+                  {/* Text inside the polygon */}
+                  <text x="55" y="35" textAnchor="middle" fontSize="10.5" fontWeight="800" fill="#475569" fontFamily="monospace" letterSpacing="0.5">
+                    {part1}-
+                  </text>
+                  <text x="55" y="48" textAnchor="middle" fontSize="12" fontWeight="900" fill="#0f172a" fontFamily="monospace" letterSpacing="0.5">
+                    {part2}
+                  </text>
+                </svg>
+              </span>
+            );
+          } else {
+            return <span key={idx}>{seg}</span>;
+          }
+        })}
+      </span>
+    );
+  };
+
+  // Traces a linear path from a node ID, stopping if it hits the END or any stopAt nodes
+  const tracePath = (startId: string | undefined, stopAt: Set<string> = new Set()) => {
+    const path: Array<{ id: string; node: FlowchartNode }> = [];
+    const localVisited = new Set<string>();
+    let currentId = startId;
+    
+    while (currentId && currentId !== 'END' && !localVisited.has(currentId) && !stopAt.has(currentId)) {
+      localVisited.add(currentId);
+      const node = sop.flowchart[currentId];
+      if (!node) break;
+      path.push({ id: currentId, node });
+      
+      if (node.type === 'question') {
+        break;
+      }
+      currentId = node.next;
+    }
+    return path;
+  };
+
+  // Traverses the flowchart sequentially from 'start' to build a main sequence
+  const getSequentialSteps = (flowchart: Record<string, FlowchartNode>) => {
+    const list: Array<{ id: string; node: FlowchartNode }> = [];
+    const visited = new Set<string>();
+    
+    let currentId: string | undefined = 'start';
+    
+    while (currentId && currentId !== 'END' && !visited.has(currentId)) {
+      visited.add(currentId);
+      const node = flowchart[currentId];
+      if (!node) break;
+      
+      list.push({ id: currentId, node });
+      
+      if (node.type === 'question') {
+        break;
+      }
+      
+      currentId = node.next;
+    }
+    
+    // Also collect any remaining nodes to make sure nothing is missed
+    const remaining: Array<{ id: string; node: FlowchartNode }> = [];
+    Object.entries(flowchart).forEach(([id, node]) => {
+      if (!visited.has(id) && id !== 'END') {
+        remaining.push({ id, node });
+      }
+    });
+    
+    return { mainChain: list, remaining };
+  };
+
+  // Traverses flowchart dynamically based on decisions state to construct active sequence of steps
+  const getDynamicChecklist = () => {
+    const list: Array<{ id: string; node: FlowchartNode; index: number }> = [];
+    const visited = new Set<string>();
+    let currentId: string | undefined = 'start';
+    let stepIndex = 1;
+
+    while (currentId && currentId !== 'END' && !visited.has(currentId)) {
+      visited.add(currentId);
+      const node = sop.flowchart[currentId];
+      if (!node) break;
+
+      list.push({ id: currentId, node, index: stepIndex });
+      stepIndex++;
+
+      if (node.type === 'question') {
+        const choice = decisions[currentId];
+        if (choice === 'yes') {
+          currentId = node.yes;
+        } else if (choice === 'no') {
+          currentId = node.no;
+        } else {
+          break; // Stop until user answers this question
+        }
+      } else {
+        currentId = node.next;
+      }
+    }
+    return list;
   };
 
   React.useEffect(() => {
@@ -84,6 +346,24 @@ export default function SopWizard({ sop, onGoHome, onBackToIndex, onLogCompleted
     setHistory([]);
     setSessionNotes('');
     setIsLogDrawerOpen(false);
+    setDecisions({});
+    setCompletedSteps({});
+  };
+
+  // Toggles completed state of a checklist step in quick view
+  const toggleStepCompletion = (stepId: string) => {
+    setCompletedSteps(prev => ({
+      ...prev,
+      [stepId]: !prev[stepId]
+    }));
+  };
+
+  // Saves decision path option ('yes' | 'no') and clears any downstream decisions/completions to avoid stale paths
+  const handleDecision = (stepId: string, choice: 'yes' | 'no') => {
+    setDecisions(prev => ({
+      ...prev,
+      [stepId]: choice
+    }));
   };
 
   // Finalize procedure and save log
@@ -167,306 +447,181 @@ export default function SopWizard({ sop, onGoHome, onBackToIndex, onLogCompleted
 
       {/* Main Workspace (Full Width) */}
       <div className="flex-1 flex flex-col overflow-hidden">
-        
-        {/* Interactive Step Box - Expanded Full Width */}
-        <div className="flex-1 flex flex-col overflow-y-auto bg-slate-50/50 p-6 justify-between">
-          
-          {/* Breadcrumb tracker showing path history */}
-          <div className="shrink-0 bg-white border border-slate-200 rounded-xl px-4 py-2.5 mb-6 text-left shadow-sm">
-            <span className="text-[10px] font-mono font-bold tracking-wider text-slate-400 uppercase block mb-1">
-              Active Steps Path Log ({history.length + 1})
-            </span>
-            <div className="flex items-center space-x-2 overflow-x-auto py-1 scrollbar-thin text-xs text-slate-500 select-none">
-              <button 
-                onClick={() => handleJumpToHistory('start', 0)}
-                disabled={history.length === 0}
-                className={`font-mono px-2 py-0.5 rounded transition-all shrink-0 ${
-                  currentNodeId === 'start' 
-                    ? 'bg-emerald-50 border border-emerald-300 text-emerald-700 font-bold' 
-                    : 'bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-700'
-                }`}
-              >
-                1: START
-              </button>
-
-              {history.map((nodeId, idx) => {
-                if (nodeId === 'start') return null; // already rendered
-                return (
-                  <React.Fragment key={nodeId}>
-                    <ChevronRight className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                    <button
-                      onClick={() => handleJumpToHistory(nodeId, idx)}
-                      className={`font-mono px-2 py-0.5 rounded transition-all shrink-0 ${
-                        currentNodeId === nodeId 
-                          ? 'bg-emerald-50 border border-emerald-300 text-emerald-700 font-bold' 
-                          : 'bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-700'
-                      }`}
-                    >
-                      {idx + 1}: {nodeId.substring(0, 10).toUpperCase()}
-                    </button>
-                  </React.Fragment>
-                );
-              })}
-
-              {currentNodeId !== 'start' && (
-                <>
-                  <ChevronRight className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                  <span className="font-mono px-2 py-0.5 rounded bg-emerald-50 border border-emerald-300 text-emerald-700 font-bold shrink-0">
-                    {history.length + 1}: {currentNodeId.toUpperCase()}
-                  </span>
-                </>
-              )}
+        {/* NEW FULL QUICK VIEW: Interactive checklist matching user video */}
+        <div className="flex-1 overflow-y-auto bg-slate-50 px-4 md:px-6 py-4 md:py-6" dir="rtl">
+          {/* Header card with SOP title and references */}
+          <div className="bg-gradient-to-br from-slate-900 via-slate-850 to-slate-800 text-white p-5 sm:p-6 rounded-2xl border border-slate-750 shadow-md text-right relative overflow-hidden mb-6">
+            <div className="absolute top-0 left-0 w-32 h-32 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+            <div className="flex justify-between items-start">
+              <span className="font-mono text-xs font-black bg-emerald-600/20 border border-emerald-500/30 text-emerald-400 px-3 py-1 rounded-md tracking-wider">
+                {sop.sop_code}
+              </span>
+              <span className="text-[10px] font-arabic tracking-widest text-slate-400 font-extrabold uppercase">
+                بروتوكول تشغيل معتمد
+              </span>
             </div>
+            <h2 className="text-lg sm:text-xl md:text-2xl font-arabic font-black text-white mt-3.5 leading-relaxed">
+              {sop.title_ar}
+            </h2>
+            
+            {sop.reference_documents.length > 0 && (
+              <div className="mt-4 pt-4 border-t border-slate-700/60 flex flex-wrap gap-2 text-right justify-start text-[10px] sm:text-xs text-slate-400 items-center">
+                <span className="font-arabic font-bold text-emerald-400 shrink-0">المراجع الرسمية المعتمدة:</span>
+                {sop.reference_documents.map((ref, i) => (
+                  <span key={i} className="bg-slate-800 border border-slate-700 px-2.5 py-0.5 rounded text-slate-300 font-medium">
+                    {ref}
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
 
-          {/* Core Panel: Active Question or Action */}
-          <div className="flex-1 flex flex-col justify-center max-w-2xl mx-auto w-full my-4">
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={currentNodeId}
-                initial={{ opacity: 0, scale: 0.97, y: 10 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.97, y: -10 }}
-                transition={{ duration: 0.25 }}
-                className="bg-white border border-slate-200 rounded-3xl p-8 shadow-xl relative text-left"
-                id="active-step-card"
-              >
-                {/* Node type decorative label */}
-                <div className="absolute top-4 right-6 flex items-center space-x-2">
-                  <span className={`text-[9px] font-mono tracking-widest font-black uppercase px-2 py-0.5 rounded border ${
-                    isEnd 
-                      ? 'bg-emerald-50 border-emerald-200 text-emerald-700' 
-                      : isQuestion 
-                      ? 'bg-amber-50 border-amber-200 text-amber-700' 
-                      : 'bg-blue-50 border-blue-200 text-blue-700'
-                  }`}>
-                    {isEnd ? 'TERMINAL STATE' : isQuestion ? 'DECISION POINT' : 'REMEDIAL ACTION'}
-                  </span>
-                </div>
 
-                {/* Left vertical visual alignment bar */}
-                <div className={`absolute top-0 bottom-0 left-0 w-[6px] rounded-l-3xl ${
-                  isEnd 
-                    ? 'bg-emerald-500' 
-                    : isQuestion 
-                    ? 'bg-amber-500' 
-                    : 'bg-blue-500'
-                }`} />
 
-                {/* Step ID Index */}
-                <p className="text-xs font-mono font-bold text-slate-400 mb-1">
-                  PROCEDURE STEP ID: {currentNodeId.toUpperCase()}
-                </p>
+          {/* Sequential Checklist matching video layout */}
+          <div className="space-y-4 mb-6">
+            <h4 className="font-arabic font-black text-slate-900 text-sm flex items-center justify-start gap-2 px-1">
+              <CheckCircle className="w-4.5 h-4.5 text-emerald-600 shrink-0" />
+              <span>قائمة الإجراءات المتسلسلة</span>
+            </h4>
 
-                {/* Core Arabic Presentation */}
-                <div className="space-y-6 pt-4">
-                  {/* Arabic Text in Egypt/LRT Cairo font with clickable badges on the left */}
-                  <div className="border-r-4 border-amber-500/30 pr-4 py-2 text-right flex flex-wrap items-center justify-start gap-3 sm:gap-4" dir="rtl">
-                    <h2 className="text-xl sm:text-2xl md:text-3xl font-arabic font-extrabold text-slate-800 leading-relaxed tracking-wide inline">
-                      {currentNode.text_ar}
-                    </h2>
-                    {activeMetadataKeys.length > 0 && (
-                      <div className="flex items-center gap-2 shrink-0" dir="ltr">
-                        {activeMetadataKeys.map((key) => {
+            <div className="space-y-4">
+              {getDynamicChecklist().map((item) => {
+                const isCompleted = !!completedSteps[item.id];
+                const activeMeta = item.node.linked_metadata || [];
+                const isQ = item.node.type === 'question';
+
+                return (
+                  <motion.div
+                    key={item.id}
+                    whileHover={{ scale: 1.002 }}
+                    onClick={() => {
+                      if (!isQ) {
+                        toggleStepCompletion(item.id);
+                      }
+                    }}
+                    className={`group relative bg-white rounded-2xl border p-4 sm:p-5 transition-all shadow-sm flex items-center justify-between gap-4 cursor-pointer select-none ${
+                      isCompleted 
+                        ? 'border-emerald-250 bg-emerald-50/10' 
+                        : isQ
+                        ? 'border-amber-250 bg-amber-50/5'
+                        : 'border-slate-200 hover:border-slate-350'
+                    }`}
+                    dir="rtl"
+                  >
+                    <div className="flex-1 flex gap-4 items-start">
+                      {/* Checkbox circle on the right side */}
+                      {!isQ && (
+                        <div 
+                          className={`w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 transition-all mt-1 ${
+                            isCompleted 
+                              ? 'border-emerald-500 bg-emerald-500 text-white' 
+                              : 'border-slate-300 group-hover:border-emerald-500'
+                          }`}
+                        >
+                          {isCompleted && <Check className="w-3.5 h-3.5 stroke-[3]" />}
+                        </div>
+                      )}
+
+                      {/* Step Content */}
+                      <div className="flex-1 space-y-1.5 text-right">
+                        <div className="flex items-center space-x-2 space-x-reverse flex-wrap gap-y-1">
+                          <span className="font-arabic text-[10px] font-bold text-slate-400">
+                            خطوة المسير {String(item.index).padStart(2, '0')}
+                          </span>
+                          {isQ && (
+                            <span className="text-[10px] font-arabic font-extrabold px-2 py-0.5 rounded bg-amber-50 border border-amber-200 text-amber-700">
+                              نقطة اتخاذ قرار
+                            </span>
+                          )}
+                        </div>
+
+                        <p className={`font-arabic font-extrabold text-slate-800 text-sm sm:text-base leading-relaxed transition-all ${
+                          isCompleted ? 'line-through text-slate-400 opacity-60' : ''
+                        }`}>
+                          {renderTextWithSopLinks(item.node.text_ar)}
+                        </p>
+
+                        {/* If it's a question, render Yes/No buttons */}
+                        {isQ && (
+                          <div className="flex items-center gap-3 mt-3">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDecision(item.id, 'yes');
+                              }}
+                              className={`px-4 py-2 rounded-xl text-xs font-arabic font-black transition-all ${
+                                decisions[item.id] === 'yes'
+                                  ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/10'
+                                  : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                              }`}
+                            >
+                              نعم
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDecision(item.id, 'no');
+                              }}
+                              className={`px-4 py-2 rounded-xl text-xs font-arabic font-black transition-all ${
+                                decisions[item.id] === 'no'
+                                  ? 'bg-red-600 text-white shadow-md shadow-red-600/10'
+                                  : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                              }`}
+                            >
+                              لا
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Metadata Badges (like SP) on the Left */}
+                    {activeMeta.length > 0 && (
+                      <div className="flex items-center gap-1.5 shrink-0" dir="ltr">
+                        {activeMeta.map((key) => {
                           const data = sop.metadata[key];
                           if (!data) return null;
                           const isSafety = data.type === 'safety_point' || key.startsWith('S');
                           return (
                             <button
                               key={key}
-                              onClick={() => setSelectedMetadataKey(key)}
-                              className={`w-11 h-11 rounded-full flex items-center justify-center font-mono font-black text-sm shadow-md cursor-pointer border-2 border-white hover:scale-115 active:scale-95 transition-all shrink-0 ${
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedMetadataKey(key);
+                              }}
+                              className={`w-9 h-9 rounded-full flex items-center justify-center font-mono font-black text-xs shadow-md cursor-pointer border-2 border-white hover:scale-110 active:scale-95 transition-all shrink-0 ${
                                 isSafety 
                                   ? 'bg-red-500 text-white animate-pulse hover:bg-red-600 ring-2 ring-red-100' 
-                                  : 'bg-[#059669] text-white hover:bg-emerald-700 ring-2 ring-emerald-100'
+                                  : 'bg-[#059669] text-white hover:bg-emerald-750 ring-2 ring-emerald-100'
                               }`}
                               title={isSafety ? `إجراء سلامة ${key} - اضغط للتفاصيل` : `ملاحظة تشغيلية ${key} - اضغط للتفاصيل`}
                             >
-                              {key}
+                              {isSafety ? 'SP' : key}
                             </button>
                           );
                         })}
                       </div>
                     )}
-                  </div>
-                </div>
-              </motion.div>
-            </AnimatePresence>
+                  </motion.div>
+                );
+              })}
+            </div>
           </div>
 
-          {/* Interactive touch action targets (Large bottom buttons) */}
-          <div className="shrink-0 pt-6 border-t border-slate-200 flex flex-col space-y-4">
-            
-            {/* Binary touch buttons */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              
-              {/* Backstep button on left */}
-              {history.length > 0 && (
-                <button
-                  onClick={handleBackStep}
-                  className="sm:hidden w-full py-3 bg-white hover:bg-slate-50 text-slate-750 font-bold rounded-xl border border-slate-200 text-xs flex items-center justify-center space-x-1.5 shadow-sm"
-                >
-                  <ArrowLeft className="w-4 h-4" />
-                  <span>UNDO PREVIOUS STEP</span>
-                </button>
-              )}
-
-              {/* Main controls depending on node type */}
-              {isQuestion ? (
-                <>
-                  {/* NO Target (Red/Dark) */}
-                  <button
-                    onClick={() => handleNext('no')}
-                    className="w-full py-5 bg-gradient-to-br from-red-600 to-rose-700 hover:from-red-500 hover:to-rose-600 text-white font-black text-lg rounded-2xl shadow-xl shadow-red-500/10 transition-all active:scale-95 flex items-center justify-center space-x-3 focus:outline-none focus:ring-4 focus:ring-red-500/30"
-                    id="btn-wizard-no"
-                  >
-                    <span className="font-mono text-xs font-extrabold uppercase px-2 py-0.5 rounded bg-red-800 border border-red-600 text-red-100">NO</span>
-                    <span>لا</span>
-                  </button>
-
-                  {/* YES Target (Cyan/Green) */}
-                  <button
-                    onClick={() => handleNext('yes')}
-                    className="w-full py-5 bg-gradient-to-br from-emerald-600 to-emerald-700 hover:from-emerald-500 hover:to-emerald-600 text-white font-black text-lg rounded-2xl shadow-xl shadow-emerald-500/10 transition-all active:scale-95 flex items-center justify-center space-x-3 focus:outline-none focus:ring-4 focus:ring-emerald-500/30"
-                    id="btn-wizard-yes"
-                  >
-                    <span className="font-mono text-xs font-extrabold uppercase px-2 py-0.5 rounded bg-emerald-800 border border-emerald-650 text-emerald-100">YES</span>
-                    <span>نعم</span>
-                  </button>
-                </>
-              ) : isEnd ? (
-                /* END state - trigger Shift Log Drawer */
-                <button
-                  onClick={() => setIsLogDrawerOpen(true)}
-                  className="w-full sm:col-span-2 py-5 bg-gradient-to-br from-emerald-600 to-emerald-750 hover:from-emerald-500 hover:to-emerald-650 text-white font-black text-lg rounded-2xl shadow-xl shadow-emerald-600/10 transition-all active:scale-95 flex items-center justify-center space-x-3 focus:outline-none focus:ring-4 focus:ring-emerald-500/30"
-                  id="btn-wizard-complete-log"
-                >
-                  <CheckCircle className="w-6 h-6 shrink-0 fill-current" />
-                  <span>COMPLETE & LOG PROCEDURE</span>
-                  <span className="font-arabic font-bold text-sm">(إنهاء وتسجيل الإجراء)</span>
-                </button>
-              ) : (
-                /* Simple action continuation button */
-                <button
-                  onClick={() => handleNext()}
-                  className="w-full sm:col-span-2 py-5 bg-gradient-to-br from-blue-600 to-indigo-700 hover:from-blue-500 hover:to-indigo-600 text-white font-black text-lg rounded-2xl shadow-xl shadow-indigo-600/10 transition-all active:scale-95 flex items-center justify-center space-x-3 focus:outline-none focus:ring-4 focus:ring-indigo-500/30"
-                  id="btn-wizard-proceed"
-                >
-                  <span>PROCEED TO NEXT STEP</span>
-                  <span className="font-arabic font-bold text-sm">(متابعة للخطوة التالية)</span>
-                  <ArrowRight className="w-5 h-5 ml-1" />
-                </button>
-              )}
-
-            </div>
-
-            {/* Desktop Back button in footer */}
-            {history.length > 0 && (
-              <div className="hidden sm:flex items-center justify-between text-xs text-slate-500">
-                <span>Mistake? You can go back one step or click any step above in the path.</span>
-                <button
-                  onClick={handleBackStep}
-                  className="px-4 py-2 bg-white hover:bg-slate-50 text-slate-700 font-bold rounded-lg border border-slate-200 transition-all flex items-center space-x-1.5 focus:outline-none shadow-sm"
-                  id="btn-wizard-undo"
-                >
-                  <ArrowLeft className="w-3.5 h-3.5" />
-                  <span>UNDO PREVIOUS STEP</span>
-                </button>
-              </div>
-            )}
-
+          {/* Complete Action Button */}
+          <div className="pt-6 border-t border-slate-200 text-right">
+            <button
+              onClick={handleFinalizeLog}
+              className="w-full py-4 bg-gradient-to-br from-emerald-600 to-emerald-700 hover:from-emerald-500 hover:to-emerald-600 text-white font-black text-base sm:text-lg rounded-2xl shadow-xl shadow-emerald-600/15 transition-all active:scale-95 flex items-center justify-center space-x-3 space-x-reverse cursor-pointer"
+            >
+              <CheckCircle className="w-5.5 h-5.5 sm:w-6 sm:h-6 shrink-0 fill-current text-white" />
+              <span>تأكيد إكمال الإجراء بالكامل وإنهاء التشغيل</span>
+            </button>
           </div>
 
         </div>
-
       </div>
-
-      {/* COMPLETED REPORT LOG OVERLAY / DRAWER */}
-      <AnimatePresence>
-        {isLogDrawerOpen && (
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-50 flex items-center justify-center p-4"
-          >
-            <motion.div 
-              initial={{ scale: 0.95, y: 20 }}
-              animate={{ scale: 1, y: 0 }}
-              exit={{ scale: 0.95, y: 20 }}
-              className="bg-white border border-slate-200 rounded-3xl max-w-lg w-full overflow-hidden shadow-2xl flex flex-col"
-            >
-              {/* Drawer Header */}
-              <div className="bg-slate-50 px-6 py-4 border-b border-slate-200 flex items-center justify-between" dir="rtl">
-                <div className="flex items-center space-x-2 space-x-reverse">
-                  <PenTool className="w-5 h-5 text-emerald-600" />
-                  <h3 className="font-arabic font-black text-slate-900 text-base">تقديم تقرير حادث تشغيلي</h3>
-                </div>
-                <button 
-                  onClick={() => setIsLogDrawerOpen(false)}
-                  className="text-slate-550 hover:text-slate-800 text-xs font-arabic font-extrabold focus:outline-none cursor-pointer"
-                >
-                  إلغاء
-                </button>
-              </div>
-
-              {/* Drawer Body Form */}
-              <div className="p-6 space-y-4 text-right" dir="rtl">
-                <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-2">
-                  <div className="flex justify-between items-center text-xs font-mono text-slate-500">
-                    <span className="font-arabic font-bold">كود الإجراء المنفذ:</span>
-                    <span className="font-semibold">{sop.sop_code}</span>
-                  </div>
-                  <h4 className="font-arabic font-black text-slate-900 text-sm">{sop.title_ar}</h4>
-                  <p className="text-xs font-arabic text-slate-500">
-                    اكتملت جميع الفحوصات والمسارات المطلوبة بنجاح. أنت الآن مخول بتسجيل هذا التقرير.
-                  </p>
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="block text-xs font-arabic font-bold text-slate-500 text-right">
-                    ملاحظات السائق / تفاصيل إضافية (اختياري)
-                  </label>
-                  <textarea
-                    rows={3}
-                    placeholder="أدخل أي ملاحظات (مثال: تم إعادة التشغيل بنجاح، تم إبلاغ ناظر المحطة يدوياً)..."
-                    value={sessionNotes}
-                    onChange={(e) => setSessionNotes(e.target.value)}
-                    className="w-full bg-white border border-slate-200 rounded-xl p-3 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/10 text-right"
-                    id="textarea-session-remarks"
-                  />
-                </div>
-
-                <div className="bg-amber-50 border border-amber-200 rounded-xl p-3.5 flex items-start space-x-2.5 space-x-reverse text-right">
-                  <AlertTriangle className="w-4.5 h-4.5 text-amber-650 shrink-0 mt-0.5" />
-                  <p className="text-[10px] font-arabic font-bold text-amber-800 leading-relaxed">
-                    من خلال إرسال هذا التقرير، فإنك تؤكد الامتثال لبروتوكولات السلامة القياسية. يقوم هذا بتسجيل رقم القطار ورقم السائق ومسار التدفق بالتفصيل في ملف المزامنة المحلي.
-                  </p>
-                </div>
-              </div>
-
-              {/* Drawer Action Buttons */}
-              <div className="bg-slate-50 px-6 py-4 border-t border-slate-200 flex justify-end space-x-3">
-                <button
-                  onClick={() => setIsLogDrawerOpen(false)}
-                  className="px-4 py-2 bg-white hover:bg-slate-100 text-slate-650 hover:text-slate-900 border border-slate-200 rounded-lg text-xs font-bold transition-colors focus:outline-none"
-                >
-                  Go Back
-                </button>
-                <button
-                  onClick={handleFinalizeLog}
-                  className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-black flex items-center space-x-1 transition-all hover:shadow-md focus:outline-none"
-                  id="btn-confirm-submit-log"
-                >
-                  <Check className="w-4 h-4 shrink-0" />
-                  <span>LOG & SIGN OUT</span>
-                </button>
-              </div>
-
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       {/* Beautiful Modal for Metadata Details */}
       <AnimatePresence>
@@ -499,9 +654,6 @@ export default function SopWizard({ sop, onGoHome, onBackToIndex, onLogCompleted
                           <h3 className="font-arabic font-extrabold text-base">
                             {isSafety ? 'إجراء سلامة هام جداً' : 'ملاحظة تشغيلية هامة'}
                           </h3>
-                          <p className="text-[9px] opacity-85 font-mono tracking-wider text-left animate-pulse" dir="ltr">
-                            {isSafety ? 'CRITICAL SAFETY DIRECTIVE' : 'OPERATIONAL REQUIREMENT'}
-                          </p>
                         </div>
                       </div>
                       

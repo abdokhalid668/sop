@@ -560,41 +560,65 @@ export const fetchNotesFromSpreadsheet = async (
       const firstCell = values[0]?.[0] || '';
       const isJson = firstCell.trim().startsWith('[') || firstCell.trim().startsWith('{');
 
+      let parsedNotesList: any[] = [];
       if (isJson) {
-        generalNotes = firstCell;
-        currentNotes = values[0]?.[1] || '';
+        try {
+          parsedNotesList = JSON.parse(firstCell);
+          if (!Array.isArray(parsedNotesList)) {
+            parsedNotesList = [];
+          }
+        } catch (e) {
+          parsedNotesList = [];
+        }
       } else {
-        // It is plain text. Let's gather all non-empty values from Column A
-        const generalNotesList: string[] = [];
-        for (let i = 0; i < values.length; i++) {
-          const val = values[i]?.[0];
-          if (val && val.trim()) {
-            const trimmed = val.trim();
-            // Skip general header if it's just a header
-            if (i === 0 && (trimmed === 'ملاحظات عامة' || trimmed === 'General Notes' || trimmed === 'ملاحظات الوردية' || trimmed.includes('JSON'))) {
-              continue;
-            }
-            generalNotesList.push(trimmed);
+        if (firstCell.trim()) {
+          const trimmed = firstCell.trim();
+          if (!(trimmed === 'ملاحظات عامة' || trimmed === 'General Notes' || trimmed === 'ملاحظات الوردية' || trimmed.includes('JSON'))) {
+            parsedNotesList.push({
+              id: `sheet-a-0`,
+              text: trimmed,
+              timestamp: 'ملاحظة عامة من الشيت',
+              trainId: 'عام'
+            });
           }
         }
-        generalNotes = generalNotesList.join('\n');
-
-        // Gather all non-empty values from Column B
-        const currentNotesList: string[] = [];
-        for (let i = 0; i < values.length; i++) {
-          const val = values[i]?.[1];
-          if (val && val.trim()) {
-            const trimmed = val.trim();
-            if (i === 0 && (trimmed === 'ملاحظات حالية' || trimmed === 'Current Notes')) {
-              continue;
-            }
-            currentNotesList.push(trimmed);
-          }
-        }
-        currentNotes = currentNotesList.join('\n');
       }
 
-      // Parse Column C starting from row 1 to 100
+      // Read rest of Column A (Row 2 to 100) to support manual row-by-row notes typed directly in the Google Sheet!
+      for (let i = 1; i < values.length; i++) {
+        const val = values[i]?.[0];
+        if (val && val.trim()) {
+          const trimmed = val.trim();
+          // Avoid appending duplicate text from sheet if it's already there
+          if (!parsedNotesList.some(n => n.text === trimmed)) {
+            parsedNotesList.push({
+              id: `sheet-a-${i}-${Date.now()}`,
+              text: trimmed,
+              timestamp: 'ملاحظة عامة من الشيت',
+              trainId: 'عام'
+            });
+          }
+        }
+      }
+
+      // Convert back to JSON string so DriverCodePanel.tsx can parse it cleanly
+      generalNotes = JSON.stringify(parsedNotesList);
+
+      // Read Column B (Current Notes / Shift Notes) row-by-row
+      const currentNotesList: string[] = [];
+      for (let i = 0; i < values.length; i++) {
+        const val = values[i]?.[1];
+        if (val && val.trim()) {
+          const trimmed = val.trim();
+          if (i === 0 && (trimmed === 'ملاحظات حالية' || trimmed === 'Current Notes' || trimmed === 'ملاحظات الوردية')) {
+            continue;
+          }
+          currentNotesList.push(trimmed);
+        }
+      }
+      currentNotes = currentNotesList.join('\n');
+
+      // Parse Column C starting from row 1 to 100 for important instructions
       for (let i = 0; i < values.length; i++) {
         const cellValue = values[i]?.[2];
         if (cellValue && cellValue.trim()) {
