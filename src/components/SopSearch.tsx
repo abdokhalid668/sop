@@ -58,7 +58,7 @@ export default function SopSearch({ sops, onSelectSop }: SopSearchProps) {
         </div>
 
         {/* Results List */}
-        <div className="space-y-4 pb-20">
+        <div className="space-y-4 pb-32 sm:pb-40">
           <div className="text-[10px] font-arabic font-black text-slate-400 uppercase tracking-wider text-right" dir="rtl">
             {query.trim() ? `نتائج البحث (${searchResults.length} إجراء مطابق)` : `جميع الإجراءات المتوفرة (${sops.length} أدلة محملة)`}
           </div>

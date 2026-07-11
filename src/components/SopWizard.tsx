@@ -387,8 +387,8 @@ export default function SopWizard({
       notes: sessionNotes.trim() || undefined
     });
 
-    // Reset wizard and go back to categories
-    onBackToIndex();
+    // Reset wizard and go back to home screen
+    onGoHome();
   };
 
   // Gather active metadata tags for current step

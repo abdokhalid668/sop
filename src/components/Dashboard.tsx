@@ -10,7 +10,7 @@ interface DashboardProps {
  
 export default function Dashboard({ onSelectCategory, importantInstructions = [] }: DashboardProps) {
   return (
-    <div className="flex-1 overflow-y-auto bg-slate-50/30 px-4 md:px-6 py-6 md:py-12 flex flex-col items-center justify-center">
+    <div className="flex-1 overflow-y-auto bg-slate-50/30 px-4 md:px-6 py-6 md:py-12 pb-24 sm:pb-32 flex flex-col items-center justify-center">
       <div className="w-full max-w-2xl mx-auto flex flex-col items-center text-center space-y-4 md:space-y-8">
         
         {/* Important Management Instructions Banner */}

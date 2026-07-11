@@ -33,7 +33,7 @@ export default function SopFavorites({ sops, favorites, onToggleFavorite, onSele
         </div>
 
         {/* Favorite Items */}
-        <div className="space-y-4 pb-20">
+        <div className="space-y-4 pb-32 sm:pb-40">
           {favoriteSops.length > 0 ? (
             favoriteSops.map((sop) => {
               const badgeStyles = () => {

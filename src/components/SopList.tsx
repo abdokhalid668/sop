@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ArrowRight } from 'lucide-react';
 import { motion } from 'motion/react';
 import { SOP } from '../types';
+import TroubleshootingGuide from './TroubleshootingGuide';
 
 interface SopListProps {
   category: 'normal' | 'degraded' | 'emergency' | 'troubleshooting';
@@ -44,34 +45,39 @@ export default function SopList({
     }
   };
 
+  const isTroubleshooting = activeCategory === 'troubleshooting';
+
   return (
-    <div className="flex-1 overflow-y-auto px-4 md:px-6 py-4 md:py-6 flex flex-col justify-start bg-[#f8fafc]" dir="rtl">
+    <div className="flex-1 flex flex-col overflow-hidden bg-[#f8fafc] text-slate-800 transition-colors duration-300" dir="rtl">
       
       {/* Arabic Header matching screenshot */}
-      <div className="max-w-4xl mx-auto w-full mb-4 sm:mb-6">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="max-w-7xl mx-auto w-full px-4 md:px-6 pt-4 md:py-4 shrink-0">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b pb-4 border-slate-200/60">
           <div className="flex items-center space-x-2.5 md:space-x-3 space-x-reverse">
             {/* Back button with right arrow */}
             <button
               onClick={onBack}
-              className="w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center bg-white border border-slate-150 rounded-lg sm:rounded-xl shadow-[0_2px_8px_rgba(0,0,0,0.02)] hover:bg-slate-50 text-slate-800 transition-colors focus:outline-none cursor-pointer"
+              className="w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center border rounded-lg sm:rounded-xl shadow-[0_2px_8px_rgba(0,0,0,0.02)] transition-colors focus:outline-none cursor-pointer bg-white border-slate-150 hover:bg-slate-50 text-slate-700"
               id="btn-back-to-home"
             >
-              <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 text-slate-700" />
+              <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5" />
             </button>
             
             <div className="text-right">
-              <h1 className="text-lg sm:text-xl md:text-2xl font-black text-slate-900 font-arabic leading-none mb-1">
+              <h1 className="text-lg sm:text-xl md:text-2xl font-black font-arabic leading-none mb-1 text-slate-900">
                 {getCategoryArabicTitle()}
               </h1>
-              <p className="text-[10px] sm:text-xs text-slate-400 font-arabic font-bold">
-                يعرض {filteredSops.length} من الإجراءات التشغيلية المعتمدة
+              <p className="text-[10px] sm:text-xs font-arabic font-bold text-slate-400">
+                {isTroubleshooting 
+                  ? 'دليل القواطع التفاعلي وإجراءات الأعطال والمعايرة والمواقع'
+                  : `يعرض ${filteredSops.length} من الإجراءات التشغيلية المعتمدة`
+                }
               </p>
             </div>
           </div>
 
           {/* Polished Mode Selector Strip at the Top */}
-          <div className="flex bg-slate-100 p-0.5 sm:p-1 rounded-lg sm:rounded-xl border border-slate-200/60 self-stretch md:self-auto overflow-x-auto scrollbar-none">
+          <div className="flex p-0.5 sm:p-1 rounded-lg sm:rounded-xl border self-stretch md:self-auto overflow-x-auto scrollbar-none bg-slate-100 border-slate-200/60">
             <div className="flex space-x-1 space-x-reverse w-full md:w-auto">
               <button
                 onClick={() => setActiveCategory('normal')}
@@ -118,79 +124,85 @@ export default function SopList({
         </div>
       </div>
 
-      {/* Index list of SOPs */}
-      <div className="max-w-4xl mx-auto w-full flex-1 space-y-3 pb-24">
-        {filteredSops.length > 0 ? (
-          filteredSops.map((sop, idx) => {
-            const isFav = favorites.includes(sop.sop_code);
-            return (
-              <motion.div
-                key={sop.sop_code}
-                initial={{ opacity: 0, y: 15 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.25, delay: idx * 0.03 }}
-                whileHover={{ scale: 1.002 }}
-                onClick={() => onSelectSop(sop)}
-                className="group bg-white rounded-2xl border border-slate-100 p-5 cursor-pointer transition-all shadow-[0_2px_8px_rgba(0,0,0,0.02)] hover:shadow-[0_4px_12px_rgba(0,0,0,0.04)]"
-                id={`sop-row-${sop.sop_code}`}
-              >
-                <div className="flex items-center justify-between w-full">
-                  {/* Right side: SOP Code, Status (قريباً), and Title */}
-                  <div className="flex flex-col items-start text-right space-y-2">
-                    {/* Top Row: Code */}
-                    <div className="flex items-center space-x-2.5 space-x-reverse">
-                      {/* Code Badge */}
-                      <span className="font-mono text-[10px] font-extrabold px-2.5 py-1 rounded-md bg-slate-50 border border-slate-150 text-slate-500 tracking-wider">
-                        {sop.sop_code}
-                      </span>
+      {/* Conditionally Render List vs Immersive Troubleshooting Guide */}
+      {isTroubleshooting ? (
+        <TroubleshootingGuide sops={sops} onSelectSop={onSelectSop} />
+      ) : (
+        <div className="flex-1 overflow-y-auto px-4 md:px-6 py-4 md:py-6 flex flex-col justify-start">
+          <div className="max-w-4xl mx-auto w-full flex-1 space-y-3 pb-32 sm:pb-40">
+            {filteredSops.length > 0 ? (
+              filteredSops.map((sop, idx) => {
+                const isFav = favorites.includes(sop.sop_code);
+                return (
+                  <motion.div
+                    key={sop.sop_code}
+                    initial={{ opacity: 0, y: 15 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.25, delay: idx * 0.03 }}
+                    whileHover={{ scale: 1.002 }}
+                    onClick={() => onSelectSop(sop)}
+                    className="group bg-white rounded-2xl border border-slate-150 p-5 cursor-pointer transition-all shadow-[0_2px_8px_rgba(0,0,0,0.02)] hover:shadow-[0_4px_12px_rgba(0,0,0,0.04)]"
+                    id={`sop-row-${sop.sop_code}`}
+                  >
+                    <div className="flex items-center justify-between w-full">
+                      {/* Right side: SOP Code, Status (قريباً), and Title */}
+                      <div className="flex flex-col items-start text-right space-y-2">
+                        {/* Top Row: Code */}
+                        <div className="flex items-center space-x-2.5 space-x-reverse">
+                          {/* Code Badge */}
+                          <span className="font-mono text-[10px] font-extrabold px-2.5 py-1 rounded-md bg-slate-50 border border-slate-150 text-slate-500 tracking-wider">
+                            {sop.sop_code}
+                          </span>
+                        </div>
+
+                        {/* Arabic Title */}
+                        <h3 className="text-base sm:text-lg font-arabic font-black text-slate-800 group-hover:text-emerald-700 transition-colors">
+                          {sop.title_ar}
+                        </h3>
+                      </div>
+
+                      {/* Left side: Heart Button */}
+                      <div className="shrink-0">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (onToggleFavorite) {
+                              onToggleFavorite(sop.sop_code);
+                            }
+                          }}
+                          className={`w-10 h-10 flex items-center justify-center bg-white border rounded-full transition-all focus:outline-none cursor-pointer ${
+                            isFav
+                              ? 'border-red-200 text-red-500 bg-red-50/30'
+                              : 'border-slate-150 text-slate-300 hover:text-red-500 hover:border-red-100'
+                          }`}
+                          id={`btn-fav-sop-${sop.sop_code}`}
+                        >
+                          <svg 
+                            xmlns="http://www.w3.org/2000/svg" 
+                            viewBox="0 0 24 24" 
+                            fill={isFav ? "currentColor" : "none"} 
+                            stroke="currentColor" 
+                            strokeWidth="2" 
+                            strokeLinecap="round" 
+                            strokeLinejoin="round" 
+                            className="w-4.5 h-4.5"
+                          >
+                            <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
+                          </svg>
+                        </button>
+                      </div>
                     </div>
-
-                    {/* Arabic Title */}
-                    <h3 className="text-base sm:text-lg font-arabic font-black text-slate-800 group-hover:text-emerald-700 transition-colors">
-                      {sop.title_ar}
-                    </h3>
-                  </div>
-
-                  {/* Left side: Heart Button */}
-                  <div className="shrink-0">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        if (onToggleFavorite) {
-                          onToggleFavorite(sop.sop_code);
-                        }
-                      }}
-                      className={`w-10 h-10 flex items-center justify-center bg-white border rounded-full transition-all focus:outline-none cursor-pointer ${
-                        isFav
-                          ? 'border-red-200 text-red-500 bg-red-50/30'
-                          : 'border-slate-150 text-slate-300 hover:text-red-500 hover:border-red-100'
-                      }`}
-                      id={`btn-fav-sop-${sop.sop_code}`}
-                    >
-                      <svg 
-                        xmlns="http://www.w3.org/2000/svg" 
-                        viewBox="0 0 24 24" 
-                        fill={isFav ? "currentColor" : "none"} 
-                        stroke="currentColor" 
-                        strokeWidth="2" 
-                        strokeLinecap="round" 
-                        strokeLinejoin="round" 
-                        className="w-4.5 h-4.5"
-                      >
-                        <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
-                      </svg>
-                    </button>
-                  </div>
-                </div>
-              </motion.div>
-            );
-          })
-        ) : (
-          <div className="bg-white border border-slate-100 rounded-2xl py-12 text-center text-slate-500 shadow-sm" dir="rtl">
-            <p className="font-bold font-arabic">لا توجد إجراءات تشغيلية محملة لهذه الفئة حالياً</p>
+                  </motion.div>
+                );
+              })
+            ) : (
+              <div className="bg-white border border-slate-100 rounded-2xl py-12 text-center text-slate-500 shadow-sm" dir="rtl">
+                <p className="font-bold font-arabic">لا توجد إجراءات تشغيلية محملة لهذه الفئة حالياً</p>
+              </div>
+            )}
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }

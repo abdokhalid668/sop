@@ -487,8 +487,6 @@ export default function App() {
       }
     });
     
-    setIsLogsOpen(true);
-
     // Clear active wizard survival states
     localStorage.removeItem('lrt_active_sop_session');
     setActiveSession(null);
@@ -766,7 +764,7 @@ export default function App() {
 
         {/* FLOATING ARABIC BOTTOM NAVIGATION BAR exactly matching the screenshot */}
         {screen !== 'wizard' && (
-          <div className="absolute bottom-3 sm:bottom-5 left-1/2 -translate-x-1/2 bg-white border border-slate-200 shadow-xl rounded-full px-3 py-1.5 sm:px-5 sm:py-2.5 flex items-center justify-around z-40 max-w-lg w-[calc(100%-1rem)] sm:w-[calc(100%-2.5rem)]">
+          <div className="absolute bottom-3 sm:bottom-5 left-1/2 -translate-x-1/2 bg-white/90 backdrop-blur-md border border-slate-200 shadow-2xl rounded-full px-3 py-1.5 sm:px-5 sm:py-2.5 flex items-center justify-around z-40 max-w-lg w-[calc(100%-1rem)] sm:w-[calc(100%-2.5rem)]">
             
             {/* 1. السجل (Shift Logs / Ledger) */}
             <button
